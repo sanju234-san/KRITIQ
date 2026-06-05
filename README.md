@@ -36,7 +36,7 @@
 
 **Frontend:** React 18 + Vite, TypeScript, Tailwind CSS, Zustand, TanStack Query
 
-**Storage:** MongoDB Atlas (free 512MB), Motor async driver
+**Storage:** MongoDB Atlas (free 512MB), Motor async driver. Ensure to set MONGODB_URI as an environment variable for secure credential handling.
 
 **Deploy:** Docker, Render.com (free backend), GitHub Pages (free frontend), GitHub Actions (CI)
 
