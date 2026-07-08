@@ -1,10 +1,13 @@
 # Sayeed domain - History list schema
 from pydantic import BaseModel
-from datetime import datetime
+from typing import List, Dict, Any
 
-class HistoryResponse(BaseModel):
-    history_id: str
-    user_id: str
-    ref_id: str
-    ref_type: str  # 'review' or 'translation'
-    timestamp: datetime
+class HistoryItem(BaseModel):
+    id: str
+    type: str
+    timestamp: str
+    summary: str
+    details: Dict[str, Any]
+
+class HistoryListResponse(BaseModel):
+    history: List[HistoryItem]

@@ -1,53 +1,37 @@
 # Next Steps & Implementation Roadmap
 
-This document outlines the immediate implementation roadmap for each team member (**Dev**, **Sayeed**, and **Sanjeevni**) following the successful setup of JWT authentication and base scaffolding.
+Now that the **Backend Core (JWT Auth, MongoDB Repositories, Review/Translation/Explanation Routes, and Unit Tests)** is fully completed, here are the updated tasks for each team member:
 
 ---
 
-## 1. Member 1 — Dev (Frontend Tasks)
+## 1. Dev (Frontend Tasks) — Priority: High
+The backend endpoints are ready and fully tested. Dev should now wire the React frontend to the backend:
 
-### Connect Authentication Flow
-* Integrate the visual stubs in `Login.jsx` and `Register.jsx` to call `authApi.login` and `authApi.register`.
-* Save the returned JWT token to `localStorage` (via the `AuthContext.jsx` state manager) so that Axios interceptors automatically attach it to authenticated API requests.
+### Authentication Integration
+* **Login & Register**: Wire `Login.jsx` and `Register.jsx` to make POST requests to `/auth/login` and `/auth/register`. On success, store the JWT token in `localStorage`.
+* **Session Restoration**: On app load, check for the token, fetch `/auth/profile`, and update the state in `AuthContext.jsx`.
 
-### Form Submissions & Results
-* **Review Submission**: Wire the `ReviewSubmit.jsx` page to accept code inputs (via Monaco Editor), select target languages, and POST to the backend `/reviews` endpoint. Display outputs dynamically in `ReviewResult.jsx` utilizing the `IssueList` component.
-* **Translation**: Wire `TranslationSubmit.jsx` to accept code inputs, choose source/target language maps, POST to `/translations`, and render outputs inside `TranslationResult.jsx` utilizing Monaco Editor.
-* **History Page**: Connect `History.jsx` to fetch recent activities from the backend `/history` endpoint and render them in a clean table layout.
-
----
-
-## 2. Member 2 — Sayeed (Backend Tasks)
-
-### Database Repositories
-* **Implement Repositories**: Complete PyMongo write/read queries in `app/db/` for:
-  * `repositories_repo.py` (fetching/adding GitHub connections)
-  * `reviews_repo.py` (saving and fetching review logs)
-  * `translations_repo.py` (saving and fetching translation outputs)
-  * `history_repo.py` (storing user activity log events)
-
-### Route Implementations
-* **Review Route (`review_routes.py`)**: Update the endpoint to call Sanjeevni's `review_service.run_review(code, language)`. Once completed:
-  1. Save results to the database using `reviews_repo.save_review`.
-  2. Log the activity using `history_repo.log_activity`.
-  3. Return the response.
-* **Translation Route (`translation_routes.py`)**: Update to call Sanjeevni's `translation_service.run_translation(code, source_lang, target_lang)`. Save to `translations_repo`, log to history, and return.
-* **Explanation Route (`explanation_routes.py`)**: Connect to Sanjeevni's `explanation_service.run_explanation(code, issue_id)`.
+### Core Features Integration
+* **Code Review**: Connect `ReviewSubmit.jsx` to POST code and language to `/reviews/`. Render the structured issues from `ReviewResponse` (e.g. mapping severity, lines, explanation, and title) on `ReviewResult.jsx`.
+* **Code Translation**: Connect `TranslationSubmit.jsx` to POST source code and target language configurations to `/translations/`. Display the generated translation in the target Monaco Editor on `TranslationResult.jsx`.
+* **Activity & History**: Connect `History.jsx` to fetch and render user records from `/history`, `/history/reviews`, and `/history/translations` in a clean dashboard table.
 
 ---
 
-## 3. Member 3 — Sanjeevni (AI, RAG, & Tools Tasks)
+## 2. Sanjeevni (AI, RAG, & Git Integration Tasks) — Priority: High
+With the core AI route skeletons fully operational, Sanjeevni should now build out the AI context gathering layers:
 
-### RAG Pipeline & Custom Dataset
-* **Dataset entries**: Populate JSON arrays under `dataset/processed/` (such as `bugs.json`, `security.json`, etc.) with good and bad coding practice snippets.
-* **Retriever (`rag_pipeline/retriever.py`)**: Write queries to search the MongoDB `dataset_examples` collection for top-k matching code snippets based on vector embeddings similarity.
-* **Grounding Prompts**: Integrate the retrieved RAG examples and MCP file contents inside prompt constructions in `review_service.py` and `translation_service.py` to grounding Gemini's reasoning.
+### Vector RAG Pipeline
+* **Local Embeddings**: Implement vector embedding Generation for raw dataset items in `rag_pipeline/embeddings.py`.
+* **Context Retriever**: Code similarity-search matches in `rag_pipeline/retriever.py` to fetch top-k similar coding examples from the database to ground Gemini prompts.
+* **Integrate with Services**: Update the Gemini prompts in `review_service.py` to inject these matched examples dynamically.
 
-### Repository Integration
-* Complete GitPython cloning operations in `repo_integration/local_clone.py` to pull repository branches and list directory contents dynamically for private repos (using the `GITHUB_TOKEN` credentials).
+### GitHub Repository Integration
+* **Local Cloner**: Complete the GitPython clone logic in `repo_integration/local_clone.py` to download target branches locally.
+* **GitHub API Reader**: Use the `GITHUB_TOKEN` to read private repo files/branches inside `repo_integration/github_api.py`.
 
 ---
 
-## 4. Collaborative Sync Points
-1. **anyio Conflict**: Coordinate on requirement conflicts in `requirements.txt` to align pins for deployment.
-2. **Staging Merges**: Raise pull requests from personal branches to the `dev` branch daily, checking for folder structure boundaries and resolving file conflicts locally.
+## 3. Sayeed (Backend Tasks) — Priority: Support
+The backend core routes, repositories, JWT flow, and unit tests are complete:
+* Sayeed should push the branch changes, and stand by to help **Sanjeevni** merge her cloner/RAG pipeline or assist **Dev** with any endpoint questions or frontend integration issues.
