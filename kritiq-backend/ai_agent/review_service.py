@@ -1,13 +1,10 @@
-# Sanjeevni domain - Review service orchestrating RAG + MCP + Gemini
-class ReviewService:
-    def __init__(self):
-        pass
+from ai_agent.prompts.review_prompt import build_review_prompt
+from ai_agent.gemini_client import ask_gemini
 
-    async def run_review(self, code: str, language: str, repo_id: str = None) -> dict:
-        # TODO: Retrieve RAG examples, retrieve MCP context, prompt Gemini, return results
-        return {
-            "review_id": "placeholder",
-            "status": "completed",
-            "summary": "Placeholder",
-            "issues": []
-        }
+
+def review_code(code: str, language: str = "python") -> str:
+    """
+    Builds a review prompt and calls Gemini to review the provided code.
+    """
+    prompt = build_review_prompt(code, language)
+    return ask_gemini(prompt)
