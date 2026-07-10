@@ -1,1 +1,66 @@
-[]
+[
+  {
+    "id": "code_smell_001",
+    "category": "code_smell",
+    "language": "python",
+    "code_snippet": "def process_order(order):\n    # validate\n    if not order.get('customer_id'):\n        raise ValueError('Missing customer')\n    if not order.get('items'):\n        raise ValueError('No items')\n    # calculate totals\n    subtotal = sum(item['price'] * item['qty'] for item in order['items'])\n    tax = subtotal * 0.08\n    shipping = 5.99 if subtotal < 50 else 0\n    total = subtotal + tax + shipping\n    # format receipt\n    lines = [f\"Customer: {order['customer_id']}\"]\n    for item in order['items']:\n        lines.append(f\"  {item['name']}: ${item['price'] * item['qty']:.2f}\")\n    lines.append(f\"Subtotal: ${subtotal:.2f}\")\n    lines.append(f\"Tax: ${tax:.2f}\")\n    lines.append(f\"Shipping: ${shipping:.2f}\")\n    lines.append(f\"Total: ${total:.2f}\")\n    receipt = '\\n'.join(lines)\n    # send email\n    print(f'Sending receipt to {order[\"customer_id\"]}...')\n    return receipt",
+    "explanation": "Long method smell: this single function handles validation, price calculation, receipt formatting, and notification — four distinct responsibilities. Each concern should be extracted into its own function, making the code easier to test, modify, and understand independently.",
+    "tags": ["long-method", "single-responsibility", "extraction"]
+  },
+  {
+    "id": "code_smell_002",
+    "category": "code_smell",
+    "language": "python",
+    "code_snippet": "def calculate_area_rect(width, height):\n    if width <= 0 or height <= 0:\n        return 0\n    return width * height\n\ndef calculate_area_triangle(base, height):\n    if base <= 0 or height <= 0:\n        return 0\n    return 0.5 * base * height",
+    "explanation": "Duplicated logic: both functions contain identical input validation (checking for non-positive values and returning 0). This validation should be extracted into a shared helper like validate_positive_dimensions(), so that a future change to error handling (e.g., raising an exception instead) only needs to happen in one place.",
+    "tags": ["duplication", "dry-violation", "refactoring"]
+  },
+  {
+    "id": "code_smell_003",
+    "category": "code_smell",
+    "language": "python",
+    "code_snippet": "class AppManager:\n    def __init__(self):\n        self.users = []\n        self.logs = []\n        self.config = {}\n\n    def add_user(self, name, email):\n        self.users.append({'name': name, 'email': email})\n\n    def log_event(self, event):\n        self.logs.append(event)\n\n    def get_config(self, key):\n        return self.config.get(key)\n\n    def send_notification(self, user, message):\n        print(f'Notifying {user}: {message}')\n\n    def generate_report(self):\n        return f'Users: {len(self.users)}, Logs: {len(self.logs)}'",
+    "explanation": "God object smell: AppManager manages users, logging, configuration, notifications, and reporting — five unrelated concerns in one class. Each responsibility should be its own class (UserService, Logger, ConfigStore, etc.), making the system modular and each component independently testable.",
+    "tags": ["god-object", "single-responsibility", "cohesion"]
+  },
+  {
+    "id": "code_smell_004",
+    "category": "code_smell",
+    "language": "python",
+    "code_snippet": "class OrderPrinter:\n    def print_summary(self, order):\n        print(f\"Order #{order.id}\")\n        print(f\"Customer: {order.customer.name}\")\n        print(f\"Email: {order.customer.email}\")\n        print(f\"Address: {order.customer.address.street}, {order.customer.address.city}\")\n        print(f\"Total: ${order.total}\")",
+    "explanation": "Feature envy: OrderPrinter's method reaches deeply into the customer and address objects to extract their fields, rather than asking those objects to format themselves. The customer-related formatting logic belongs on the Customer or Address classes, not on OrderPrinter.",
+    "tags": ["feature-envy", "encapsulation", "responsibility"]
+  },
+  {
+    "id": "code_smell_005",
+    "category": "code_smell",
+    "language": "python",
+    "code_snippet": "def set_status(ticket, status_code):\n    if status_code == 0:\n        ticket['status'] = 'open'\n    elif status_code == 1:\n        ticket['status'] = 'in_progress'\n    elif status_code == 2:\n        ticket['status'] = 'resolved'\n    elif status_code == 3:\n        ticket['status'] = 'closed'",
+    "explanation": "Primitive obsession: using raw integers (0, 1, 2, 3) to represent ticket statuses forces every consumer to know the mapping. An Enum (e.g., TicketStatus.OPEN) would make the code self-documenting, prevent invalid status values, and enable IDE autocompletion.",
+    "tags": ["primitive-obsession", "enum", "type-safety"]
+  },
+  {
+    "id": "code_smell_006",
+    "category": "code_smell",
+    "language": "python",
+    "code_snippet": "def create_user(first_name, last_name, email, phone, role, department, manager_id, start_date):\n    return {\n        'first_name': first_name, 'last_name': last_name,\n        'email': email, 'phone': phone, 'role': role,\n        'department': department, 'manager_id': manager_id,\n        'start_date': start_date\n    }",
+    "explanation": "Long parameter list: this function takes 8 positional parameters, making call sites hard to read and error-prone (easy to swap two string arguments silently). Parameters should be grouped into data classes or typed dicts (e.g., PersonalInfo, EmploymentInfo) to improve clarity.",
+    "tags": ["long-parameter-list", "readability", "data-clumps"]
+  },
+  {
+    "id": "code_smell_007",
+    "category": "code_smell",
+    "language": "python",
+    "code_snippet": "def compute_discount(price, is_member):\n    if is_member:\n        return price * 0.9\n    return price\n    # Legacy holiday promo — disabled Q2 2024\n    if is_holiday_season():\n        return price * 0.85",
+    "explanation": "Dead code: the holiday promo block after the unconditional return statement can never execute. It adds visual noise, misleads future developers about the function's actual behavior, and should be fully removed (or moved behind a proper feature flag) rather than left commented-in-place.",
+    "tags": ["dead-code", "unreachable", "maintenance"]
+  },
+  {
+    "id": "code_smell_008",
+    "category": "code_smell",
+    "language": "python",
+    "code_snippet": "class Engine:\n    def __init__(self):\n        self.temperature = 0\n        self.rpm = 0\n\nclass Car:\n    def __init__(self):\n        self.engine = Engine()\n\n    def get_engine_status(self):\n        return f'Temp: {self.engine.temperature}, RPM: {self.engine.rpm}'\n\n    def set_engine_temp(self, temp):\n        self.engine.temperature = temp\n\n    def set_engine_rpm(self, rpm):\n        self.engine.rpm = rpm",
+    "explanation": "Inappropriate intimacy: Car directly reads and writes Engine's internal attributes (temperature, rpm) through thin wrapper methods. Car is tightly coupled to Engine's implementation details. Engine should expose its own methods (e.g., get_status(), set_temp()) so its internals can change without breaking Car.",
+    "tags": ["inappropriate-intimacy", "coupling", "encapsulation"]
+  }
+]

@@ -1,1 +1,66 @@
-[]
+[
+  {
+    "id": "bug_001",
+    "category": "bug",
+    "language": "python",
+    "code_snippet": "def get_last_n_items(items, n):\n    return items[len(items) - n - 1:]",
+    "explanation": "Off-by-one error: the index subtracts an extra 1, so get_last_n_items([1,2,3,4,5], 2) returns [3,4,5] (3 items) instead of the expected [4,5]. The correct slice is items[len(items) - n:] or simply items[-n:].",
+    "tags": ["off-by-one", "slicing", "indexing"]
+  },
+  {
+    "id": "bug_002",
+    "category": "bug",
+    "language": "python",
+    "code_snippet": "def average(numbers):\n    total = sum(numbers)\n    return total // len(numbers)",
+    "explanation": "Using integer division (//) instead of true division (/) causes the function to silently truncate the result. average([1, 2, 3, 4]) returns 2 instead of the correct 2.5. This produces wrong numerical output without any error or warning.",
+    "tags": ["integer-division", "arithmetic", "truncation"]
+  },
+  {
+    "id": "bug_003",
+    "category": "bug",
+    "language": "python",
+    "code_snippet": "def remove_negatives(numbers):\n    for num in numbers:\n        if num < 0:\n            numbers.remove(num)\n    return numbers",
+    "explanation": "Mutating a list while iterating over it causes the iterator to skip elements. For input [-1, -2, -3, 4], the loop skips -2 because removing -1 shifts all indices, resulting in [-2, 4] instead of the expected [4].",
+    "tags": ["mutation-during-iteration", "list", "iterator"]
+  },
+  {
+    "id": "bug_004",
+    "category": "bug",
+    "language": "python",
+    "code_snippet": "def is_valid_age(age):\n    return age >= 0 or age <= 120",
+    "explanation": "Using 'or' instead of 'and' makes the condition always True for any integer. Any negative number satisfies age <= 120, and any number above 120 satisfies age >= 0. The correct logic requires 'and' to ensure age is within the valid range.",
+    "tags": ["logical-operator", "boolean-logic", "condition"]
+  },
+  {
+    "id": "bug_005",
+    "category": "bug",
+    "language": "python",
+    "code_snippet": "def make_multipliers():\n    multipliers = []\n    for i in range(5):\n        multipliers.append(lambda x: x * i)\n    return multipliers",
+    "explanation": "Late-binding closure bug: all lambdas capture the variable 'i' by reference, not by value. When any returned function is called, 'i' has already reached its final value of 4. So make_multipliers()[0](10) returns 40 instead of the expected 0.",
+    "tags": ["closure", "late-binding", "lambda"]
+  },
+  {
+    "id": "bug_006",
+    "category": "bug",
+    "language": "python",
+    "code_snippet": "import copy\n\ndef duplicate_matrix(matrix):\n    return copy.copy(matrix)",
+    "explanation": "Shallow copy only copies the outer list; the inner row lists are still shared references. Modifying a cell in the 'copy' (e.g. result[0][0] = 99) also mutates the original matrix, causing silent data corruption in the source.",
+    "tags": ["shallow-copy", "deep-copy", "mutable-state"]
+  },
+  {
+    "id": "bug_007",
+    "category": "bug",
+    "language": "python",
+    "code_snippet": "def read_config(filepath):\n    try:\n        with open(filepath) as f:\n            return f.read()\n    except Exception:\n        return \"{}\"",
+    "explanation": "Silently returning a fallback value on any exception hides real errors like PermissionError or encoding issues. The caller believes it received valid config data and proceeds with an empty dict, leading to subtle downstream failures that are extremely hard to trace back to a missing or inaccessible file.",
+    "tags": ["silent-exception", "error-swallowing", "config"]
+  },
+  {
+    "id": "bug_008",
+    "category": "bug",
+    "language": "python",
+    "code_snippet": "def flatten(nested_list):\n    result = []\n    for item in nested_list:\n        if isinstance(item, list):\n            result.extend(flatten(item))\n        else:\n            result.extend(flatten(item))\n    return result",
+    "explanation": "The else branch incorrectly calls flatten(item) on a non-list value, which then tries to iterate over it (e.g., an integer), raising a TypeError. The else branch should append the item directly with result.append(item), not recurse on it. This causes a crash on any input containing non-list elements.",
+    "tags": ["recursion", "base-case", "type-error"]
+  }
+]

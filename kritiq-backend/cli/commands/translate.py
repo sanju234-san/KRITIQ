@@ -32,8 +32,16 @@ def translate(
     # Run code translation
     try:
         typer.echo(f"Translating {path} (from {source_language} to {to})...\n")
-        translation_result = translate_code(code_content, source_language, to)
+        translation_result = translate_code(code_content, source_language, to, file_path=path)
         typer.echo(translation_result)
     except Exception as e:
         typer.echo(f"Error during code translation: {e}", err=True)
         raise typer.Exit(code=1)
+
+    # Generate walkthrough summary
+    try:
+        from ai_agent.walkthrough_writer import write_translation_walkthrough
+        write_translation_walkthrough(path, source_language, to, translation_result)
+    except Exception as e:
+        typer.echo(f"\n[Warning] Could not generate walkthrough file: {e}", err=True)
+

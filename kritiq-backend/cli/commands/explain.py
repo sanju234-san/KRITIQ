@@ -31,7 +31,7 @@ def explain(
     # Run code explanation
     try:
         typer.echo(f"Explaining {path} (detected language: {language})...\n")
-        explanation_result = explain_code(code_content, language)
+        explanation_result = explain_code(code_content, language, file_path=path)
         typer.echo(explanation_result)
     except Exception as e:
         typer.echo(f"Error during code explanation: {e}", err=True)

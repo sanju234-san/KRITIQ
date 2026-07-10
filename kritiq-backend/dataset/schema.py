@@ -1,12 +1,11 @@
 # Sanjeevni domain - Dataset item representation schema
-from pydantic import BaseModel
-from typing import List, Optional
+from typing import TypedDict, List
 
-class DatasetEntry(BaseModel):
+class DatasetEntry(TypedDict):
     id: str
     category: str
     language: str
     code_snippet: str
     explanation: str
     tags: List[str]
-    embedding_vector: Optional[List[float]] = None
+

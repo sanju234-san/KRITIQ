@@ -31,8 +31,16 @@ def review(
     # Run code review
     try:
         typer.echo(f"Reviewing {path} (detected language: {language})...\n")
-        review_result = review_code(code_content, language)
+        review_result = review_code(code_content, language, file_path=path)
         typer.echo(review_result)
     except Exception as e:
         typer.echo(f"Error during code review: {e}", err=True)
         raise typer.Exit(code=1)
+
+    # Generate walkthrough summary
+    try:
+        from ai_agent.walkthrough_writer import write_review_walkthrough
+        write_review_walkthrough(path, language, review_result)
+    except Exception as e:
+        typer.echo(f"\n[Warning] Could not generate walkthrough file: {e}", err=True)
+

@@ -1,1 +1,66 @@
-[]
+[
+  {
+    "id": "bad_practice_001",
+    "category": "bad_practice",
+    "language": "python",
+    "code_snippet": "def append_to_list(value, my_list=[]):\n    my_list.append(value)\n    return my_list",
+    "explanation": "Using a mutable object (like a list) as a default argument value in Python is a bad practice. The default value is evaluated once when the function is defined, meaning all calls to the function share the exact same list instance, leading to state leakage across calls.",
+    "tags": ["mutable-defaults", "functions", "anti-pattern"]
+  },
+  {
+    "id": "bad_practice_002",
+    "category": "bad_practice",
+    "language": "python",
+    "code_snippet": "try:\n    result = 10 / value\nexcept:\n    result = 0",
+    "explanation": "Using a bare except clause is a bad practice because it catches all exceptions indiscriminately, including SystemExit, KeyboardInterrupt, and MemoryError. This makes debugging extremely difficult and can hide genuine bugs or prevent the program from terminating.",
+    "tags": ["exceptions", "error-handling", "anti-pattern"]
+  },
+  {
+    "id": "bad_practice_003",
+    "category": "bad_practice",
+    "language": "python",
+    "code_snippet": "if value == None:\n    pass",
+    "explanation": "Comparing values with None using the == operator is bad practice. Since None is a singleton in Python, you should always use identity comparison ('is None' or 'is not None') for clarity, performance, and to avoid unexpected behavior with custom classes that override __eq__.",
+    "tags": ["comparison", "none-comparison", "style"]
+  },
+  {
+    "id": "bad_practice_004",
+    "category": "bad_practice",
+    "language": "python",
+    "code_snippet": "def check_access(user):\n    if user.is_authenticated:\n        if user.has_permission:\n            if user.is_active:\n                return True\n    return False",
+    "explanation": "Deeply nested conditionals (often called the arrow anti-pattern) degrade readability and make code maintenance harder. Using guard clauses to exit early simplifies the control flow and keeps the indentation level flat.",
+    "tags": ["nesting", "readability", "guard-clauses"]
+  },
+  {
+    "id": "bad_practice_005",
+    "category": "bad_practice",
+    "language": "python",
+    "code_snippet": "counter = 0\n\ndef increment():\n    global counter\n    counter += 1",
+    "explanation": "Overusing global variables or modifying global state inside functions makes the code impure, harder to isolate, test, and debug. It increases the risk of side-effects from unrelated execution paths.",
+    "tags": ["globals", "state-management", "maintainability"]
+  },
+  {
+    "id": "bad_practice_006",
+    "category": "bad_practice",
+    "language": "python",
+    "code_snippet": "result = \"\"\nfor word in words:\n    result += word + \" \"",
+    "explanation": "Concatenating strings inside a loop using the '+' operator is inefficient in Python because strings are immutable. This operation constructs a new string object in memory on every iteration, leading to O(N^2) time complexity. Using str.join() is O(N) and preferred.",
+    "tags": ["performance", "strings", "looping"]
+  },
+  {
+    "id": "bad_practice_007",
+    "category": "bad_practice",
+    "language": "python",
+    "code_snippet": "def calculate_tax(amount):\n    return amount * 0.0825",
+    "explanation": "Hardcoding numerical constants (known as magic numbers) makes the codebase harder to maintain and read. It's difficult to understand what the number represents or change it globally. Constants should be defined at the module level with descriptive names.",
+    "tags": ["constants", "readability", "maintainability"]
+  },
+  {
+    "id": "bad_practice_008",
+    "category": "bad_practice",
+    "language": "python",
+    "code_snippet": "try:\n    process_payment()\nexcept Exception as e:\n    log_error(\"Payment failed\")",
+    "explanation": "Catching the base Exception class too broadly is bad practice. It catches critical programming mistakes like NameError, TypeError, or AttributeError that may occur inside the try block, masking the actual root cause of failures.",
+    "tags": ["exceptions", "error-handling", "debugging"]
+  }
+]
