@@ -3,20 +3,20 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 class ReviewIssue(BaseModel):
-    severity: str
+    title: str
+    explanation: str
+    suggested_fix: Optional[str] = None
+    severity: Optional[str] = None
     line: Optional[int] = None
-    message: str
 
 class ReviewRequest(BaseModel):
-    language: str
-    source: str  # 'repository' or 'upload'
-    repository_id: Optional[str] = None
-    file_path: Optional[str] = None
-    code_content: Optional[str] = None
-    request_translation: bool = False
+    code: str
+    language: Optional[str] = None
+    repo_url: Optional[str] = None
+    filename: Optional[str] = None
 
 class ReviewResponse(BaseModel):
     review_id: str
-    status: str
     summary: str
     issues: List[ReviewIssue]
+    raw_output: Optional[str] = None

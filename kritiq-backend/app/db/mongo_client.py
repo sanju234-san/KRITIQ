@@ -1,5 +1,6 @@
 # Sayeed domain - MongoDB connection client
-# TODO: Initialize MongoClient with env variables from settings
+from pymongo import MongoClient
+from app.core.config import settings
 
 class MongoDBClient:
     def __init__(self):
@@ -7,13 +8,13 @@ class MongoDBClient:
         self.db = None
 
     def connect(self, uri: str, db_name: str):
-        # Placeholder MongoClient setup
-        # self.client = MongoClient(uri)
-        # self.db = self.client[db_name]
-        pass
+        self.client = MongoClient(uri)
+        self.db = self.client[db_name]
 
     def get_collection(self, name: str):
-        # return self.db[name]
-        return None
+        if self.db is None:
+            self.connect(settings.MONGODB_URI, settings.DATABASE_NAME)
+        return self.db[name]
 
 db_client = MongoDBClient()
+
