@@ -1,1 +1,66 @@
-[]
+[
+  {
+    "id": "language_standards_001",
+    "category": "language_standards",
+    "language": "python",
+    "code_snippet": "# Bad: violates PEP 8 naming conventions\nMaxRetryCount = 3\ndef GetUserById(UserId):\n    pass\n\n# Good: snake_case for functions/variables, UPPER_CASE for module-level constants\nMAX_RETRY_COUNT = 3\ndef get_user_by_id(user_id: int):\n    pass",
+    "explanation": "PEP 8 mandates `snake_case` for all function names and variables, and `UPPER_CASE` (with underscores) for module-level constants. `CamelCase` is reserved exclusively for class names. Using `GetUserById` or `MaxRetryCount` for non-class identifiers breaks the shared convention that the entire Python ecosystem (including the standard library) follows, making code feel alien to any Python developer reading it and hindering IDEs that rely on naming patterns for auto-suggestions.",
+    "tags": ["pep8", "naming-conventions", "snake-case", "constants"]
+  },
+  {
+    "id": "language_standards_002",
+    "category": "language_standards",
+    "language": "python",
+    "code_snippet": "# Bad: imports in wrong order, mixed on one line\nimport requests, os\nfrom myapp.utils import format_date\nimport json\nfrom datetime import datetime\n\n# Good: stdlib -> third-party -> local, each group separated by a blank line\nimport json\nimport os\nfrom datetime import datetime\n\nimport requests\n\nfrom myapp.utils import format_date",
+    "explanation": "PEP 8 specifies a three-group import order: standard library, then third-party packages, then local application imports, with each group separated by a blank line. Tools like `isort` and linters enforce this. The correct ordering makes it immediately clear which dependencies are external (requiring installation) versus which are part of the project, reducing confusion during environment setup and code review.",
+    "tags": ["pep8", "import-order", "isort", "code-organization"]
+  },
+  {
+    "id": "language_standards_003",
+    "category": "language_standards",
+    "language": "python",
+    "code_snippet": "def calculate_discount(price: float, member_tier: str) -> float:\n    \"\"\"Calculate the discount amount for a given price and membership tier.\n\n    Args:\n        price: The original price before discount, must be non-negative.\n        member_tier: One of 'bronze', 'silver', or 'gold'.\n\n    Returns:\n        The discounted price as a float.\n\n    Raises:\n        ValueError: If member_tier is not a recognized tier.\n    \"\"\"\n    ...",
+    "explanation": "Google-style docstrings (used above) are a widely adopted convention providing structured sections: summary line, Args, Returns, Raises. This format is parsed by tools like Sphinx and pydoc to auto-generate API documentation. A plain one-liner or no docstring at all forces readers to inspect the implementation to understand the contract — what values are valid, what is returned, and what exceptions to expect. Consistent docstring style across a codebase is an explicit PEP 257 recommendation.",
+    "tags": ["pep257", "docstring", "google-style", "documentation"]
+  },
+  {
+    "id": "language_standards_004",
+    "category": "language_standards",
+    "language": "python",
+    "code_snippet": "# Bad: missing spaces around operators and after commas\nx=5+3\nresult=x*2+1\ncoords=(10,20)\n\n# Good: spaces around operators, after commas, consistent style\nx = 5 + 3\nresult = x * 2 + 1\ncoords = (10, 20)",
+    "explanation": "PEP 8 requires a single space on both sides of binary operators (assignment, arithmetic, comparison) and a single space after each comma in argument lists and collections. Missing whitespace compresses tokens together visually, making it harder for the human eye to parse operands from operators at a glance — especially in arithmetic-heavy code. Tools like `black` and `autopep8` enforce this automatically and consistently.",
+    "tags": ["pep8", "whitespace", "operators", "formatting"]
+  },
+  {
+    "id": "language_standards_005",
+    "category": "language_standards",
+    "language": "python",
+    "code_snippet": "# Bad: wildcard import — pollutes namespace unpredictably\nfrom os.path import *\nfrom datetime import *\n\n# Good: explicit imports make the namespace and origin of each name clear\nfrom os.path import join, exists, dirname\nfrom datetime import datetime, timedelta",
+    "explanation": "Wildcard imports (`from module import *`) inject all exported names into the local namespace without the author having declared which ones are needed. This makes it impossible to determine where a given name (e.g., `join`, `date`) comes from without reading the imported module's `__all__`. It can cause silent name collisions when two modules export the same name, and it breaks static analysis tools that rely on explicit import graphs. PEP 8 explicitly prohibits wildcard imports in production code.",
+    "tags": ["pep8", "wildcard-import", "namespace-pollution", "explicit-imports"]
+  },
+  {
+    "id": "language_standards_006",
+    "category": "language_standards",
+    "language": "python",
+    "code_snippet": "# Bad: no blank lines between top-level definitions\nclass UserManager:\n    def create(self, name):\n        pass\n    def delete(self, user_id):\n        pass\nclass OrderManager:\n    def place(self, user_id, items):\n        pass\n\n# Good: two blank lines between top-level classes, one between methods\nclass UserManager:\n    def create(self, name):\n        pass\n\n    def delete(self, user_id):\n        pass\n\n\nclass OrderManager:\n    def place(self, user_id, items):\n        pass",
+    "explanation": "PEP 8 mandates exactly two blank lines between top-level definitions (functions and classes) and exactly one blank line between method definitions inside a class. This spacing gives each definition visual breathing room, making it easy to locate where one definition ends and another begins when scrolling through a file. Without this convention, class and function boundaries blend together, significantly slowing code navigation and review.",
+    "tags": ["pep8", "blank-lines", "spacing", "readability"]
+  },
+  {
+    "id": "language_standards_007",
+    "category": "language_standards",
+    "language": "python",
+    "code_snippet": "# Bad: lines exceeding 79 characters, no continuation structure\ndef register_user(first_name, last_name, email, phone, role, department, start_date, is_active=True):\n    return UserRepository.create_new_user_record(first_name=first_name, last_name=last_name, email=email, phone=phone)\n\n# Good: broken at logical points using implicit continuation inside parentheses\ndef register_user(\n    first_name: str,\n    last_name: str,\n    email: str,\n    phone: str,\n    role: str,\n    department: str,\n    start_date: str,\n    is_active: bool = True,\n) -> 'User':\n    return UserRepository.create_new_user_record(\n        first_name=first_name,\n        last_name=last_name,\n        email=email,\n        phone=phone,\n    )",
+    "explanation": "PEP 8 sets a soft limit of 79 characters per line (79 for code, 72 for docstrings) to ensure readability in side-by-side diffs, terminal windows, and printed code. Lines that exceed this force horizontal scrolling. Python's implicit line continuation inside parentheses, brackets, and braces is the preferred break mechanism — it requires no backslash continuation and allows aligning arguments vertically for immediate readability. The trailing comma on the last argument is a PEP 8-endorsed style that produces cleaner diffs when arguments are added.",
+    "tags": ["pep8", "line-length", "line-continuation", "79-chars"]
+  },
+  {
+    "id": "language_standards_008",
+    "category": "language_standards",
+    "language": "python",
+    "code_snippet": "# Bad: bare large literals with no visual grouping\nMAX_UPLOAD_SIZE = 104857600\nNATIONAL_DEBT = 33000000000000\nPLANCK_CONSTANT = 0.000000000000000000000000000000000662607015\n\n# Good: underscore separators make magnitude immediately visible\nMAX_UPLOAD_SIZE = 104_857_600       # 100 MB in bytes\nNATIONAL_DEBT = 33_000_000_000_000  # 33 trillion\nPLANCK_CONSTANT = 6.626_070_15e-34",
+    "explanation": "Python 3.6+ allows underscores as visual separators in numeric literals (PEP 515). For large integers, grouping digits in threes mirrors the comma convention used in everyday writing, making the magnitude of a number instantly readable. Without separators, the reader must manually count digits to determine if `104857600` is hundreds of thousands, millions, or hundreds of millions — a common source of off-by-order-of-magnitude bugs. The underscore is ignored by the interpreter and has no effect on the value.",
+    "tags": ["pep515", "numeric-literals", "readability", "python3.6"]
+  }
+]

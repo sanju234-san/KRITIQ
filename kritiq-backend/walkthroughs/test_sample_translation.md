@@ -9,7 +9,7 @@ Translated `test_sample.py` from python to java.
 | **Source File** | `test_sample.py` |
 | **From** | python |
 | **To** | java |
-| **Translated On** | 2026-07-10 12:07:48 |
+| **Translated On** | 2026-07-13 17:23:57 |
 
 ## 💻 Translated Code
 
@@ -29,4 +29,4 @@ public class DiscountCalculator {
 - [ ] Compile or run tests to ensure behavioral equivalence with the original source code.
 
 ---
-*Generated automatically by Kritiq's AI Translation Agent — 2026-07-10 12:07:48*
+*Generated automatically by Kritiq's AI Translation Agent — 2026-07-13 17:23:57*

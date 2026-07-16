@@ -1,1 +1,99 @@
-[]
+[
+  {
+    "id": "review_comments_001",
+    "category": "review_comments",
+    "language": "python",
+    "code_snippet": "def get_first_item(items):\n    return items[0]",
+    "explanation": "This will throw an IndexError if `items` is an empty list — worth adding a guard here: `if not items: return None` (or raise a more descriptive exception). Callers are unlikely to always guarantee a non-empty list.",
+    "tags": [
+      "index-error",
+      "guard-clause",
+      "defensive-coding"
+    ]
+  },
+  {
+    "id": "review_comments_002",
+    "category": "review_comments",
+    "language": "python",
+    "code_snippet": "def send_email(user):\n    # TODO: add retry logic\n    smtp.send(user.email, build_message(user))",
+    "explanation": "This TODO has been here since the initial commit 4 months ago. If retry logic is genuinely needed for production, it should be a tracked issue rather than a comment — otherwise it'll stay here indefinitely. Can we either remove it or file a ticket?",
+    "tags": [
+      "todo-comment",
+      "technical-debt",
+      "follow-up"
+    ]
+  },
+  {
+    "id": "review_comments_003",
+    "category": "review_comments",
+    "language": "python",
+    "code_snippet": "def calculate_score(data):\n    s = 0\n    for d in data:\n        s += d['v'] * d['w']\n    return s",
+    "explanation": "The variable names `s`, `d`, `v`, and `w` make this hard to follow without additional context — what is `v` vs `w`? Even `score`, `item`, `value`, `weight` would make the intent obvious at a glance. This is a core path in the review engine, so clarity matters here.",
+    "tags": [
+      "naming",
+      "readability",
+      "variable-names"
+    ]
+  },
+  {
+    "id": "review_comments_004",
+    "category": "review_comments",
+    "language": "python",
+    "code_snippet": "def is_admin(user):\n    if user.role == 'admin':\n        return True\n    else:\n        return False",
+    "explanation": "This whole function can just be `return user.role == 'admin'`. The if/else wrapping a boolean literal is a pretty common pattern — the result of a comparison is already a bool, so the branches are redundant.",
+    "tags": [
+      "simplification",
+      "boolean-return",
+      "readability"
+    ]
+  },
+  {
+    "id": "review_comments_005",
+    "category": "review_comments",
+    "language": "python",
+    "code_snippet": "def load_user(user_id):\n    try:\n        return db.query(f'SELECT * FROM users WHERE id = {user_id}')\n    except Exception:\n        return None",
+    "explanation": "Two issues in one block: the f-string query is a SQL injection risk (use a parameterized query), and swallowing all exceptions and returning None means callers can't distinguish 'user not found' from 'database is down' — that distinction is going to matter downstream.",
+    "tags": [
+      "sql-injection",
+      "error-handling",
+      "exception-swallowing"
+    ]
+  },
+  {
+    "id": "review_comments_006",
+    "category": "review_comments",
+    "language": "python",
+    "code_snippet": "class ReportGenerator:\n    def generate(self, report_type, user_id, start_date, end_date,\n                 include_charts, format, locale, timezone, dry_run):\n        pass",
+    "explanation": "Nine positional parameters is a lot — easy to accidentally swap `start_date` and `end_date`, or pass `format` in the wrong slot. Could these be grouped into a `ReportOptions` dataclass? It would also make it easier to add new options later without touching every call site.",
+    "tags": [
+      "long-parameter-list",
+      "dataclass",
+      "api-design"
+    ]
+  },
+  {
+    "id": "review_comments_007",
+    "category": "review_comments",
+    "language": "python",
+    "code_snippet": "import time\nimport requests\n\ndef fetch_data(url):\n    response = requests.get(url)\n    time.sleep(1)\n    return response.json()",
+    "explanation": "The `time.sleep(1)` after every fetch looks like it was added for rate limiting during development — is this intentional for production? A fixed 1-second sleep on every call will kill throughput if this is called in a loop. If it's needed, at least make the delay configurable.",
+    "tags": [
+      "hardcoded-delay",
+      "performance",
+      "configurability"
+    ]
+  },
+  {
+    "id": "review_comments_008",
+    "category": "review_comments",
+    "language": "python",
+    "code_snippet": "def process_records(records):\n    results = []\n    for r in records:\n        if r['status'] == 'active':\n            if r['score'] > 50:\n                if r['verified']:\n                    results.append(transform(r))\n    return results",
+    "explanation": "Three levels of nesting for a filter + transform is worth flattening. You could write this as `[transform(r) for r in records if r['status'] == 'active' and r['score'] > 50 and r['verified']]`, or extract an `is_eligible(r)` predicate function — which also makes it independently testable.",
+    "tags": [
+      "nesting",
+      "readability",
+      "list-comprehension",
+      "guard-clauses"
+    ]
+  }
+]

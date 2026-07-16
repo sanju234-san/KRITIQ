@@ -1,1 +1,66 @@
-[]
+[
+  {
+    "id": "security_001",
+    "category": "security",
+    "language": "python",
+    "code_snippet": "def get_user(username):\n    conn = get_db_connection()\n    cursor = conn.cursor()\n    query = f\"SELECT * FROM users WHERE username = '{username}'\"\n    cursor.execute(query)\n    return cursor.fetchone()",
+    "explanation": "SQL injection vulnerability: the username is interpolated directly into the query string using an f-string. An attacker can pass a value like `' OR '1'='1` to bypass authentication or `'; DROP TABLE users; --` to destroy data. The fix is to always use parameterized queries: `cursor.execute('SELECT * FROM users WHERE username = ?', (username,))`. This separates code from data so the driver handles escaping.",
+    "tags": ["sql-injection", "parameterized-queries", "database", "owasp-a03"]
+  },
+  {
+    "id": "security_002",
+    "category": "security",
+    "language": "python",
+    "code_snippet": "import boto3\n\nAWS_ACCESS_KEY = \"AKIAIOSFODNN7EXAMPLE\"\nAWS_SECRET_KEY = \"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\"\nDATABASE_PASSWORD = \"Sup3rS3cr3t!\"\n\ndef get_s3_client():\n    return boto3.client(\n        's3',\n        aws_access_key_id=AWS_ACCESS_KEY,\n        aws_secret_access_key=AWS_SECRET_KEY\n    )",
+    "explanation": "Hardcoded credentials in source code are a critical secret exposure risk. Once committed to version control, these credentials persist in git history and are routinely found by automated scanners. AWS keys leaked this way are exploited within minutes. Credentials must be loaded from environment variables (`os.environ.get('AWS_ACCESS_KEY')`) or a secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault), never stored inline.",
+    "tags": ["hardcoded-credentials", "secrets", "api-keys", "owasp-a02"]
+  },
+  {
+    "id": "security_003",
+    "category": "security",
+    "language": "python",
+    "code_snippet": "from flask import Flask, request\n\napp = Flask(__name__)\n\n@app.route('/greet')\ndef greet():\n    name = request.args.get('name', 'Guest')\n    return f'<h1>Hello, {name}!</h1>'",
+    "explanation": "Reflected XSS vulnerability: the user-supplied `name` parameter is embedded directly into HTML output without escaping. An attacker can craft a URL like `/greet?name=<script>document.cookie</script>` to inject arbitrary JavaScript that executes in the victim's browser, enabling session hijacking or credential theft. All user input must be HTML-escaped before insertion into responses. In Flask, use `markupsafe.escape(name)` or render through a Jinja2 template which auto-escapes by default.",
+    "tags": ["xss", "input-sanitization", "html-injection", "owasp-a03"]
+  },
+  {
+    "id": "security_004",
+    "category": "security",
+    "language": "python",
+    "code_snippet": "import pickle\nfrom flask import Flask, request\n\napp = Flask(__name__)\n\n@app.route('/load', methods=['POST'])\ndef load_object():\n    raw = request.get_data()\n    obj = pickle.loads(raw)\n    return str(obj)",
+    "explanation": "Insecure deserialization: `pickle.loads()` on arbitrary user-supplied bytes is equivalent to remote code execution. Pickle can invoke arbitrary Python callables during deserialization — an attacker can craft a payload that spawns a shell or exfiltrates data simply by sending a specially-crafted POST body. Never deserialize untrusted data with pickle. Use safer formats (JSON with schema validation, or `jsonschema`) and validate structure before processing.",
+    "tags": ["insecure-deserialization", "pickle", "rce", "owasp-a08"]
+  },
+  {
+    "id": "security_005",
+    "category": "security",
+    "language": "python",
+    "code_snippet": "import os\nfrom flask import Flask, request, send_file\n\napp = Flask(__name__)\nBASE_DIR = '/var/app/reports'\n\n@app.route('/download')\ndef download():\n    filename = request.args.get('file')\n    filepath = os.path.join(BASE_DIR, filename)\n    return send_file(filepath)",
+    "explanation": "Path traversal vulnerability: `os.path.join()` does not neutralize `..` sequences. An attacker can pass `file=../../etc/passwd` to break out of the intended directory and read arbitrary files on the server. The fix requires normalizing the resolved path and asserting it still starts with the base directory: `real = os.path.realpath(filepath); assert real.startswith(BASE_DIR)`. Failing to do so exposes all files accessible to the server process.",
+    "tags": ["path-traversal", "directory-traversal", "file-access", "owasp-a01"]
+  },
+  {
+    "id": "security_006",
+    "category": "security",
+    "language": "python",
+    "code_snippet": "import hashlib\n\ndef hash_password(password: str) -> str:\n    return hashlib.md5(password.encode()).hexdigest()\n\ndef verify_password(password: str, hashed: str) -> bool:\n    return hash_password(password) == hashed",
+    "explanation": "MD5 is a broken cryptographic hash function that should never be used for password storage. It is extremely fast, enabling attackers to perform billions of guesses per second using GPUs. There is no salt, so identical passwords produce identical hashes, enabling precomputed rainbow table attacks. Password hashing requires a dedicated, deliberately slow algorithm: `bcrypt`, `argon2-cffi`, or `hashlib.scrypt`. These include automatic salting and configurable work factors.",
+    "tags": ["weak-hashing", "md5", "password-storage", "owasp-a02"]
+  },
+  {
+    "id": "security_007",
+    "category": "security",
+    "language": "python",
+    "code_snippet": "from flask import Flask, request, jsonify\nfrom db import get_user, check_password\n\napp = Flask(__name__)\n\n@app.route('/login', methods=['POST'])\ndef login():\n    data = request.get_json()\n    user = get_user(data['username'])\n    if user and check_password(data['password'], user['password_hash']):\n        return jsonify({'token': generate_token(user)})\n    return jsonify({'error': 'Invalid credentials'}), 401",
+    "explanation": "Missing rate limiting on the login endpoint allows an attacker to perform brute-force or credential stuffing attacks at machine speed with no throttling. There is nothing preventing thousands of password attempts per second against any account. The endpoint needs both IP-level and account-level rate limiting (e.g., via Flask-Limiter: `@limiter.limit('10 per minute')`), exponential backoff on repeated failures, and optionally CAPTCHA after a threshold.",
+    "tags": ["rate-limiting", "brute-force", "authentication", "owasp-a07"]
+  },
+  {
+    "id": "security_008",
+    "category": "security",
+    "language": "python",
+    "code_snippet": "from flask import Flask, jsonify\nimport traceback\n\napp = Flask(__name__)\n\n@app.errorhandler(Exception)\ndef handle_error(e):\n    error_details = traceback.format_exc()\n    return jsonify({\n        'error': str(e),\n        'traceback': error_details\n    }), 500",
+    "explanation": "Exposing full stack traces and exception messages in production API responses leaks sensitive internal details: file paths, class names, library versions, database schema fragments, and logic hints that directly assist an attacker in understanding the system's internals. Error responses visible to clients should only contain a generic message and a correlation ID. The full traceback must be written exclusively to server-side logs (e.g., `app.logger.exception(e)`) which are never client-accessible.",
+    "tags": ["information-disclosure", "stack-trace", "debug-info", "owasp-a05"]
+  }
+]

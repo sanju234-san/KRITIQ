@@ -1,17 +1,35 @@
+import os
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 GITHUB_API_BASE = "https://api.github.com"
+
+# Load the optional GitHub personal access token from the environment.
+# If present: authenticated requests (5,000 req/hour, private repo access).
+# If absent:  unauthenticated requests (60 req/hour, public repos only).
+_GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 HEADERS = {
     "Accept": "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
+if _GITHUB_TOKEN:
+    HEADERS["Authorization"] = f"Bearer {_GITHUB_TOKEN}"
+    print("GitHub API: authenticated (5,000 req/hour, private repo access enabled)")
+else:
+    print("GitHub API: using unauthenticated requests (60/hour limit)")
+
 
 def list_repo_files(owner: str, repo: str, path: str = "") -> list[str]:
     """
     Calls the GitHub REST API to list files and directories at the given
-    path inside a public repository. Returns a list of entry names.
+    path inside a repository. Returns a list of entry names.
+
+    Uses an authenticated request if GITHUB_TOKEN is set in the environment,
+    falling back to unauthenticated (60 req/hour) otherwise.
     """
     url = f"{GITHUB_API_BASE}/repos/{owner}/{repo}/contents/{path}"
 

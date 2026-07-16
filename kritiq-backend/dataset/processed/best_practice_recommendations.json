@@ -1,1 +1,101 @@
-[]
+[
+  {
+    "id": "best_practice_recommendations_001",
+    "category": "best_practice_recommendations",
+    "language": "python",
+    "code_snippet": "@app.route('/users/login', methods=['POST'])\ndef login(): ...\n\n@app.route('/users/register', methods=['POST'])\ndef register(): ...\n\n@app.route('/users/reset-password', methods=['POST'])\ndef reset_password(): ...",
+    "explanation": "Extract the input validation logic shared across these three authentication endpoints into a single `@validate_user_input` decorator. Duplicating the same field checks across multiple routes means a future schema change (e.g., adding password complexity rules) must be applied in three separate places.",
+    "tags": [
+      "decorator",
+      "dry",
+      "validation",
+      "authentication"
+    ]
+  },
+  {
+    "id": "best_practice_recommendations_002",
+    "category": "best_practice_recommendations",
+    "language": "python",
+    "code_snippet": "def parse_config(path):\n    with open(path) as f:\n        raw = f.read()\n    # 40 lines of parsing, validation, defaults...\n    return config",
+    "explanation": "Break `parse_config` into three focused functions: `read_raw_config(path)`, `validate_config(raw)`, and `apply_defaults(validated)`. Each step is then independently testable — right now a single parsing bug anywhere in the 40-line body requires debugging the entire function.",
+    "tags": [
+      "single-responsibility",
+      "testability",
+      "refactoring"
+    ]
+  },
+  {
+    "id": "best_practice_recommendations_003",
+    "category": "best_practice_recommendations",
+    "language": "python",
+    "code_snippet": "TIER_DISCOUNT = {\n    'bronze': 0.05,\n    'silver': 0.10,\n    'gold': 0.20\n}\n\ndef apply_discount(price, tier):\n    if tier not in TIER_DISCOUNT:\n        raise ValueError(f'Unknown tier: {tier}')\n    return price * (1 - TIER_DISCOUNT[tier])",
+    "explanation": "Replace the `tier` string key with a `MemberTier` Enum. The current approach allows callers to silently pass `'Gold'` or `'GOLD'` without a type error, and new tiers can be added to the dict without updating the Enum, leaving the set of valid states inconsistent across the codebase.",
+    "tags": [
+      "enum",
+      "type-safety",
+      "api-design"
+    ]
+  },
+  {
+    "id": "best_practice_recommendations_004",
+    "category": "best_practice_recommendations",
+    "language": "python",
+    "code_snippet": "def export_all_orders(db):\n    orders = db.execute('SELECT * FROM orders').fetchall()\n    for order in orders:\n        write_to_csv(order)",
+    "explanation": "Use a server-side cursor with `fetchmany()` or a `yield`-based streaming query instead of `fetchall()`. Loading the entire `orders` table into memory in one call will OOM-kill the process once the table grows beyond a few hundred thousand rows.",
+    "tags": [
+      "generator",
+      "memory-efficiency",
+      "database",
+      "streaming"
+    ]
+  },
+  {
+    "id": "best_practice_recommendations_005",
+    "category": "best_practice_recommendations",
+    "language": "python",
+    "code_snippet": "class NotificationService:\n    def __init__(self):\n        self.sendgrid = SendGridClient(api_key=SENDGRID_KEY)\n        self.twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)",
+    "explanation": "Inject `sendgrid` and `twilio` as constructor parameters instead of instantiating them internally. As written, every unit test of `NotificationService` makes real API calls unless you patch the constructors globally — which is fragile and tightly couples tests to implementation details.",
+    "tags": [
+      "dependency-injection",
+      "testability",
+      "mocking"
+    ]
+  },
+  {
+    "id": "best_practice_recommendations_006",
+    "category": "best_practice_recommendations",
+    "language": "python",
+    "code_snippet": "result = [transform(x) for x in filter(lambda x: x.is_active, map(lambda x: enrich(x), raw_items)) if validate(transform(x))]",
+    "explanation": "Rewrite this as a named generator pipeline or a plain for-loop with intermediate variables. The current single-line nesting calls `transform(x)` twice per element (once in the body, once in the condition), which both wastes computation and makes the logic nearly unreadable.",
+    "tags": [
+      "readability",
+      "performance",
+      "generator",
+      "comprehension"
+    ]
+  },
+  {
+    "id": "best_practice_recommendations_007",
+    "category": "best_practice_recommendations",
+    "language": "python",
+    "code_snippet": "def handle_request(payload):\n    print(f'Received payload: {payload}')\n    result = process(payload)\n    print(f'Processing done, result: {result}')\n    return result",
+    "explanation": "Replace `print()` with `logging.getLogger(__name__)` calls at appropriate levels (`logger.debug` for payload details, `logger.info` for completion). Print statements cannot be filtered by severity, routed to log aggregators, or suppressed in production without modifying the code.",
+    "tags": [
+      "logging",
+      "observability",
+      "production-readiness"
+    ]
+  },
+  {
+    "id": "best_practice_recommendations_008",
+    "category": "best_practice_recommendations",
+    "language": "python",
+    "code_snippet": "import os\n\nREPORT_DIR = os.path.join(os.getcwd(), 'reports', 'monthly')\n\ndef get_report_path(filename):\n    return os.path.join(REPORT_DIR, filename)",
+    "explanation": "Migrate from `os.path` to `pathlib.Path`: replace `os.path.join(os.getcwd(), 'reports', 'monthly')` with `Path.cwd() / 'reports' / 'monthly'` and the join with `REPORT_DIR / filename`. Pathlib is object-oriented, cross-platform, and prevents accidentally mixing Path objects with raw strings.",
+    "tags": [
+      "pathlib",
+      "file-operations",
+      "modernisation"
+    ]
+  }
+]

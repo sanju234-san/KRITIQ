@@ -1,1 +1,122 @@
-[]
+[
+  {
+    "id": "translation_pairs_001",
+    "category": "translation_pairs",
+    "language": "python",
+    "code_snippet": "numbers = [1, 2, 3, 4, 5]\nsquares = [x * x for x in numbers if x % 2 == 0]",
+    "translated_language": "java",
+    "translated_snippet": "List<Integer> numbers = List.of(1, 2, 3, 4, 5);\nList<Integer> squares = numbers.stream()\n    .filter(x -> x % 2 == 0)\n    .map(x -> x * x)\n    .collect(Collectors.toList());",
+    "explanation": "Python list comprehensions with a filter condition map to Java Stream's `.filter()` + `.map()` + `.collect()` pipeline. Both express the same intent declaratively, but Java streams are explicitly lazy (nothing runs until a terminal operation like `collect` is called), while the Python comprehension evaluates eagerly into a list immediately.",
+    "tags": [
+      "list-comprehension",
+      "streams",
+      "functional",
+      "python-to-java"
+    ]
+  },
+  {
+    "id": "translation_pairs_002",
+    "category": "translation_pairs",
+    "language": "python",
+    "code_snippet": "user = {'name': 'Alice', 'age': 30, 'role': 'admin'}\nprint(user.get('email', 'N/A'))",
+    "translated_language": "java",
+    "translated_snippet": "Map<String, Object> user = new HashMap<>();\nuser.put(\"name\", \"Alice\");\nuser.put(\"age\", 30);\nuser.put(\"role\", \"admin\");\nSystem.out.println(user.getOrDefault(\"email\", \"N/A\"));",
+    "explanation": "Python dicts translate to `HashMap<String, Object>` in Java. The `dict.get(key, default)` pattern maps directly to `Map.getOrDefault(key, default)`. Java requires explicit type declarations and autoboxed types for primitives (`Integer`, not `int`) when stored as map values.",
+    "tags": [
+      "dict",
+      "hashmap",
+      "default-value",
+      "python-to-java"
+    ]
+  },
+  {
+    "id": "translation_pairs_003",
+    "category": "translation_pairs",
+    "language": "python",
+    "code_snippet": "name = \"Alice\"\nage = 30\nmessage = f\"Hello, {name}! You are {age} years old.\"",
+    "translated_language": "java",
+    "translated_snippet": "String name = \"Alice\";\nint age = 30;\nString message = String.format(\"Hello, %s! You are %d years old.\", name, age);",
+    "explanation": "Python f-strings embed expressions by name inside braces; Java's `String.format()` uses positional format specifiers (`%s` for strings, `%d` for integers). F-strings are evaluated at the point of the assignment expression, while `String.format()` is a method call. Java 15+ introduced `formatted()` and text blocks as more modern alternatives, but `String.format()` remains universally supported.",
+    "tags": [
+      "f-string",
+      "string-formatting",
+      "interpolation",
+      "python-to-java"
+    ]
+  },
+  {
+    "id": "translation_pairs_004",
+    "category": "translation_pairs",
+    "language": "python",
+    "code_snippet": "try:\n    result = int(user_input)\nexcept ValueError as e:\n    print(f\"Invalid number: {e}\")\nfinally:\n    cleanup()",
+    "translated_language": "java",
+    "translated_snippet": "try {\n    int result = Integer.parseInt(userInput);\n} catch (NumberFormatException e) {\n    System.out.println(\"Invalid number: \" + e.getMessage());\n} finally {\n    cleanup();\n}",
+    "explanation": "Python's `try/except/finally` maps directly to Java's `try/catch/finally`. The key semantic difference is the exception type: Python raises `ValueError` for failed int parsing while Java throws `NumberFormatException`. Java also uses `e.getMessage()` rather than `str(e)` to extract the error string, and exception types are statically declared in the catch clause.",
+    "tags": [
+      "try-except",
+      "exception-handling",
+      "finally",
+      "python-to-java"
+    ]
+  },
+  {
+    "id": "translation_pairs_005",
+    "category": "translation_pairs",
+    "language": "python",
+    "code_snippet": "numbers = [1, 2, 3, 4, 5]\nsquares = list(map(lambda x: x ** 2, numbers))",
+    "translated_language": "javascript",
+    "translated_snippet": "const numbers = [1, 2, 3, 4, 5];\nconst squares = numbers.map(x => x ** 2);",
+    "explanation": "Python's `map()` returns a lazy iterator that must be wrapped in `list()` to materialise; JavaScript's `Array.prototype.map()` is always eager and returns a new array directly. Both accept a callable (lambda / arrow function). The `**` exponentiation operator is identical in both languages.",
+    "tags": [
+      "map",
+      "lambda",
+      "arrow-function",
+      "python-to-javascript"
+    ]
+  },
+  {
+    "id": "translation_pairs_006",
+    "category": "translation_pairs",
+    "language": "python",
+    "code_snippet": "user = {'name': 'Bob', 'score': 95}\ngreeting = f\"Player {user['name']} scored {user['score']} points.\"",
+    "translated_language": "javascript",
+    "translated_snippet": "const user = { name: 'Bob', score: 95 };\nconst greeting = `Player ${user.name} scored ${user.score} points.`;",
+    "explanation": "Python f-strings and JavaScript template literals (backtick strings) serve the same purpose: embedding runtime expressions inside string literals. Python uses `f\"...{expr}...\"`, JavaScript uses backtick `` `...${expr}...` ``. JavaScript uses dot notation for object property access versus Python's bracket notation for dict key lookup.",
+    "tags": [
+      "f-string",
+      "template-literal",
+      "string-interpolation",
+      "python-to-javascript"
+    ]
+  },
+  {
+    "id": "translation_pairs_007",
+    "category": "translation_pairs",
+    "language": "python",
+    "code_snippet": "items = [3, 1, 4, 1, 5, 9, 2, 6]\nfiltered = [x for x in items if x > 3]\nsorted_result = sorted(filtered)",
+    "translated_language": "javascript",
+    "translated_snippet": "const items = [3, 1, 4, 1, 5, 9, 2, 6];\nconst sortedResult = items\n  .filter(x => x > 3)\n  .sort((a, b) => a - b);",
+    "explanation": "Python's list comprehension + `sorted()` maps to JavaScript's `.filter()` + `.sort()` chain. Critical difference: Python's `sorted()` sorts numbers numerically by default, but JavaScript's `.sort()` converts elements to strings first — so `[9, 10].sort()` returns `[10, 9]`. A numeric comparator `(a, b) => a - b` is always required for correct numeric ordering in JavaScript.",
+    "tags": [
+      "filter",
+      "sort",
+      "array-methods",
+      "python-to-javascript"
+    ]
+  },
+  {
+    "id": "translation_pairs_008",
+    "category": "translation_pairs",
+    "language": "python",
+    "code_snippet": "from dataclasses import dataclass\n\n@dataclass\nclass Point:\n    x: float\n    y: float\n\np = Point(3.0, 4.0)\nprint(p.x, p.y)",
+    "translated_language": "javascript",
+    "translated_snippet": "class Point {\n  constructor(x, y) {\n    this.x = x;\n    this.y = y;\n  }\n}\n\nconst p = new Point(3.0, 4.0);\nconsole.log(p.x, p.y);",
+    "explanation": "Python's `@dataclass` auto-generates `__init__`, `__repr__`, and `__eq__` from annotated fields with no boilerplate. JavaScript has no equivalent — a class with an explicit `constructor` is the idiomatic translation. JavaScript also lacks structural equality: `p1 == p2` compares references, not field values, which Python dataclasses provide automatically.",
+    "tags": [
+      "dataclass",
+      "class",
+      "oop",
+      "python-to-javascript"
+    ]
+  }
+]

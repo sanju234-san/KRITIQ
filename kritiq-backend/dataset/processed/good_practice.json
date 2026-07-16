@@ -1,1 +1,66 @@
-[]
+[
+  {
+    "id": "good_practice_001",
+    "category": "good_practice",
+    "language": "python",
+    "code_snippet": "def read_config(filepath: str) -> str:\n    with open(filepath, 'r', encoding='utf-8') as f:\n        return f.read()",
+    "explanation": "Using a `with` statement (context manager) guarantees the file handle is closed immediately when the block exits — whether by normal return, exception, or even KeyboardInterrupt. Without it, the developer must remember to call `f.close()` in a finally block. Forgetting to do so under error conditions leaks OS file descriptors, which can eventually cause 'Too many open files' failures in long-running services.",
+    "tags": ["context-manager", "resource-management", "with-statement", "file-handling"]
+  },
+  {
+    "id": "good_practice_002",
+    "category": "good_practice",
+    "language": "python",
+    "code_snippet": "class ReportService:\n    def __init__(self, db, mailer, logger):\n        self.db = db\n        self.mailer = mailer\n        self.logger = logger\n\n    def generate_and_send(self, user_id: int) -> None:\n        data = self.db.fetch_report(user_id)\n        self.logger.info(f'Report generated for user {user_id}')\n        self.mailer.send(user_id, data)",
+    "explanation": "Dependency injection: the database, mailer, and logger are passed into the constructor rather than created internally. This means each collaborator can be swapped for a mock or stub in tests without patching globals or environment variables. Internally constructed dependencies (e.g., `self.db = MySQLDatabase()` inside `__init__`) create hidden coupling between the class and a specific implementation, making unit testing impossible without brittle monkeypatching.",
+    "tags": ["dependency-injection", "testability", "coupling", "solid"]
+  },
+  {
+    "id": "good_practice_003",
+    "category": "good_practice",
+    "language": "python",
+    "code_snippet": "from dataclasses import dataclass\nfrom datetime import date\n\n@dataclass\nclass Employee:\n    name: str\n    email: str\n    department: str\n    start_date: date\n    is_active: bool = True",
+    "explanation": "Using a `@dataclass` instead of a plain dict gives the data structure a named type with documented fields, type hints, and auto-generated `__init__`, `__repr__`, and `__eq__` methods for free. A plain dict like `{'name': ..., 'email': ...}` provides no IDE autocompletion, no type checking, and allows misspelled keys to go undetected at runtime. Dataclasses are self-documenting and integrate seamlessly with type checkers like mypy.",
+    "tags": ["dataclass", "type-hints", "structured-data", "readability"]
+  },
+  {
+    "id": "good_practice_004",
+    "category": "good_practice",
+    "language": "python",
+    "code_snippet": "raw_scores = [85, 92, 61, 74, 90]\n\n# Good: concise single-expression transformation\npassing_scores = [s for s in raw_scores if s >= 70]\n\n# Good: straightforward mapping\nnormalized = [round(s / 100, 2) for s in raw_scores]",
+    "explanation": "List comprehensions are appropriate when a transformation or filter can be expressed as a clean single expression. They are significantly faster than equivalent for-loop + append() patterns because the list is built in one C-level operation. The key constraint is readability: if the expression requires multiple nested conditions or calls helper functions with side effects, a traditional loop is clearer. Comprehensions shine for simple, pure transformations.",
+    "tags": ["list-comprehension", "performance", "readability", "pythonic"]
+  },
+  {
+    "id": "good_practice_005",
+    "category": "good_practice",
+    "language": "python",
+    "code_snippet": "import logging\n\nlogger = logging.getLogger(__name__)\n\ndef process_payment(order_id: str, amount: float) -> bool:\n    logger.info('Processing payment for order %s, amount=%.2f', order_id, amount)\n    try:\n        result = charge_gateway(order_id, amount)\n        logger.info('Payment succeeded for order %s', order_id)\n        return True\n    except PaymentError as e:\n        logger.error('Payment failed for order %s: %s', order_id, e)\n        return False",
+    "explanation": "Using the `logging` module instead of `print` statements gives production code structured, configurable output. Log levels (DEBUG, INFO, WARNING, ERROR) allow operators to tune verbosity without code changes. Log records carry timestamps, module names, and line numbers automatically. `print()` output goes only to stdout with no metadata and cannot be routed to files, aggregators (Datadog, CloudWatch), or filtered by severity in a running service.",
+    "tags": ["logging", "observability", "production-readiness", "debugging"]
+  },
+  {
+    "id": "good_practice_006",
+    "category": "good_practice",
+    "language": "python",
+    "code_snippet": "from pathlib import Path\n\ndef ensure_output_dir(base: str, subdir: str) -> Path:\n    output = Path(base) / subdir\n    output.mkdir(parents=True, exist_ok=True)\n    return output\n\ndef write_result(base: str, filename: str, content: str) -> None:\n    path = Path(base) / filename\n    path.write_text(content, encoding='utf-8')",
+    "explanation": "The `pathlib.Path` API is object-oriented and cross-platform. The `/` operator for joining paths is more readable than `os.path.join()`, and methods like `.mkdir()`, `.read_text()`, and `.write_text()` are part of the object rather than scattered across `os`, `os.path`, and `shutil`. Pathlib also returns Path objects (not raw strings), so downstream code avoids accidentally passing file paths where other strings are expected.",
+    "tags": ["pathlib", "file-operations", "cross-platform", "pythonic"]
+  },
+  {
+    "id": "good_practice_007",
+    "category": "good_practice",
+    "language": "python",
+    "code_snippet": "from enum import Enum\n\nclass OrderStatus(Enum):\n    PENDING = 'pending'\n    PROCESSING = 'processing'\n    SHIPPED = 'shipped'\n    DELIVERED = 'delivered'\n    CANCELLED = 'cancelled'\n\ndef update_order(order_id: int, status: OrderStatus) -> None:\n    if status == OrderStatus.CANCELLED:\n        notify_customer(order_id)\n    save_status(order_id, status.value)",
+    "explanation": "Using an `Enum` instead of raw strings or integers makes the set of valid states exhaustive and self-documenting. With raw strings, nothing prevents a caller from passing `update_order(1, 'cancellled')` (typo) and silently storing an invalid state. An Enum enforces membership at the call site, enables IDE autocompletion, supports iteration over all values, and makes comparisons readable (`status == OrderStatus.CANCELLED`) instead of opaque (`status == 4`).",
+    "tags": ["enum", "type-safety", "self-documenting", "state-machine"]
+  },
+  {
+    "id": "good_practice_008",
+    "category": "good_practice",
+    "language": "python",
+    "code_snippet": "import csv\nfrom typing import Generator\n\ndef stream_transactions(filepath: str) -> Generator[dict, None, None]:\n    with open(filepath, 'r', encoding='utf-8', newline='') as f:\n        reader = csv.DictReader(f)\n        for row in reader:\n            yield row\n\nfor tx in stream_transactions('transactions_2024.csv'):\n    process(tx)",
+    "explanation": "Using a generator with `yield` processes one row at a time and holds only that row in memory. Loading the entire CSV into a list with `csv.DictReader(f).readlines()` or `list(reader)` first would allocate memory proportional to the file size — a 10 GB transaction log would exhaust RAM on most machines. Generators enable processing arbitrarily large datasets at constant memory cost, and they compose cleanly with other iterators via `itertools`.",
+    "tags": ["generator", "memory-efficiency", "lazy-evaluation", "large-data"]
+  }
+]

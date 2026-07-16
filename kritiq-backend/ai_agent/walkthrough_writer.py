@@ -226,3 +226,50 @@ def write_translation_walkthrough(file_path: str, source_language: str, target_l
         return full_path
     except Exception as e:
         raise RuntimeError(f"Failed to write translation walkthrough: {e}")
+
+
+def write_explanation_walkthrough(file_path: str, language: str, explanation_result: str, output_dir: str = "walkthroughs") -> str:
+    """
+    Creates output_dir if it doesn't exist, builds a walkthrough markdown document
+    summarizing the AI code explanation, saves it to a file, and returns the full path.
+
+    If writing fails for any reason, prints a warning and returns an empty string
+    instead of raising, so the calling CLI command is never interrupted.
+    """
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        filename = os.path.basename(file_path)
+        base_name = os.path.splitext(filename)[0]
+        output_filename = f"{base_name}_explanation.md"
+        output_path = os.path.join(output_dir, output_filename)
+
+        # Build the final document using concatenated f-strings for robust formatting
+        md_content = (
+            f"# Walkthrough — Code Explanation: `{filename}`\n\n"
+            f"Explanation of `{filename}` ({language}).\n\n"
+            f"## 📋 Overview\n\n"
+            f"| | |\n"
+            f"|---|---|\n"
+            f"| **File** | `{file_path}` |\n"
+            f"| **Language** | {language} |\n"
+            f"| **Explained On** | {timestamp} |\n\n"
+            f"## 💡 Explanation\n\n"
+            f"{explanation_result}\n\n"
+            f"## ✅ Recommended Next Steps\n"
+            f"- [ ] Review this explanation to understand the code's purpose.\n"
+            f"- [ ] Ask for clarification on any part that's still unclear.\n\n"
+            f"---\n"
+            f"*Generated automatically by Kritiq's AI Explanation Agent — {timestamp}*\n"
+        )
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(md_content)
+
+        full_path = os.path.abspath(output_path)
+        print(f"Code explanation walkthrough generated successfully: {full_path}")
+        return full_path
+    except Exception as e:
+        print(f"Warning: Failed to write explanation walkthrough: {e}")
+        return ""
