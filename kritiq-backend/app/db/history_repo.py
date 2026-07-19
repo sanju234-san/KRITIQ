@@ -25,8 +25,12 @@ class HistoryRepository:
         self.collection.insert_one(activity_data)
         return activity_data
 
-    async def get_history_by_user(self, user_id: str) -> list:
-        cursor = self.collection.find({"user_id": user_id}).sort("timestamp", -1)
+    async def get_history_by_user(self, user_id: str, limit: int = 20, skip: int = 0, activity_type: str = None) -> list:
+        query = {"user_id": user_id}
+        if activity_type:
+            query["type"] = activity_type
+        cursor = self.collection.find(query).sort("timestamp", -1).skip(skip).limit(limit)
         return list(cursor)
+
 
 history_repo = HistoryRepository()

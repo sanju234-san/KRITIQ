@@ -58,13 +58,13 @@ def mock_db_and_services(monkeypatch):
         MOCK_HISTORY_DB.append(log_data)
         return log_data
 
-    async def mock_get_history_by_user(user_id: str):
+    async def mock_get_history_by_user(user_id: str, *args, **kwargs):
         return [log for log in MOCK_HISTORY_DB if log["user_id"] == user_id]
 
-    async def mock_get_reviews_by_user(user_id: str):
+    async def mock_get_reviews_by_user(user_id: str, *args, **kwargs):
         return [rev for rev in MOCK_REVIEWS_DB.values() if rev["user_id"] == user_id]
 
-    async def mock_get_translations_by_user(user_id: str):
+    async def mock_get_translations_by_user(user_id: str, *args, **kwargs):
         return [trans for trans in MOCK_TRANSLATIONS_DB.values() if trans["user_id"] == user_id]
 
     monkeypatch.setattr(reviews_repo, "save_review", mock_save_review)

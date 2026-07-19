@@ -23,9 +23,10 @@ class TranslationsRepository:
     async def get_translation_by_id(self, translation_id: str) -> dict:
         return self.collection.find_one({"_id": translation_id})
 
-    async def get_translations_by_user(self, user_id: str) -> list:
-        cursor = self.collection.find({"user_id": user_id}).sort("created_at", -1)
+    async def get_translations_by_user(self, user_id: str, limit: int = 20, skip: int = 0) -> list:
+        cursor = self.collection.find({"user_id": user_id}).sort("created_at", -1).skip(skip).limit(limit)
         return list(cursor)
+
 
 translations_repo = TranslationsRepository()
 
