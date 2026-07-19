@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GITHUB_TOKEN: str = ""
     JWT_SECRET: str = "mock-secret"
+    JWT_ALGORITHM: str = "HS256"
+    TOKEN_EXPIRE_MINUTES: int = 15
+
 
     class Config:
         env_file = ".env"

@@ -1,30 +1,54 @@
-# System Architecture
+# System Architecture — KRITIQ Backend
 
-Kritiq follows a layered architectural pattern to keep components decoupled, allowing individual layers to scale or be updated independently.
+This document details the backend architectural structure, file layouts, API flow, database structure, and AI service integration mapping.
 
-## Components Flow
+---
 
+## 1. Directory Structure
+
+```text
+kritiq-backend/
+├── app/
+│   ├── auth/            # JWT validation, password hashing, and dependency hooks
+│   ├── core/            # Config variables, global exception handlers, and rate limiter
+│   ├── db/              # MongoClient singleton and database repository files
+│   ├── models/          # Pydantic schemas mapping request and response structures
+│   ├── routes/          # API routers (auth, review, translation, explanation, history)
+│   ├── main.py          # FastAPI application constructor, middleware, and route registrations
+│   └── playground.py    # Sequential integration test checker
+├── checks/              # Independent diagnostics scripts for database, API, and performance
+└── tests/               # Pytest test suite asserting endpoint behaviors
 ```
-[Presentation Layer]
-   ├── React Web App (Dev)
-   └── Typer CLI (Sanjeevni)
-           │
-           ▼
-[Application Layer] (FastAPI Backend - Sayeed)
-   ├── Routes, Authentication (JWT)
-   └── Persistence Orchestration (MongoDB Atlas)
-           │
-           ▼
-[AI, RAG, & Context Layer] (AI Services - Sanjeevni)
-   ├── Gemini AI Agent & Prompt Engineering
-   ├── MCP Server (Repository Access)
-   └── RAG Pipeline (Custom Review Database)
+
+---
+
+## 2. Request Processing Pipeline
+
+```mermaid
+graph TD
+    Client[Client Request] --> SizeLimit[Request Size Limiter Middleware]
+    SizeLimit --> Headers[Security Headers Middleware]
+    Headers --> RateLimit[IP Rate Limiter Middleware]
+    RateLimit --> Auth[JWT Authorization Guard]
+    Auth --> Route[FastAPI Route Handler]
+    Route --> ThreadPool{Is AI Call?}
+    ThreadPool -- Yes --> anyio[anyio.to_thread.run_sync]
+    anyio --> AIService[AI Service Call]
+    ThreadPool -- No --> DBRepo[Database Repository]
+    AIService --> DBRepo
+    DBRepo --> Response[Client Response]
 ```
 
-## Description of Layers
+---
 
-1. **Presentation Layer**: Handles user interaction.
-   * Web Frontend: Built with React.js, Tailwind CSS, Monaco Editor, and Axios.
-   * Command Line Interface (CLI): Built with Python and Typer. Shares the backend REST endpoints.
-2. **Application Layer**: Exposed as FastAPI endpoints. Handled in `kritiq-backend/app/`. Validates inputs using Pydantic, controls user sessions (JWT), and communicates with MongoDB Atlas.
-3. **AI & Context Layer**: Performs the core reasoning. Handled in `kritiq-backend/ai_agent/`, `mcp_server/`, and `rag_pipeline/`. Coordinates retrieval of project files and dataset-driven examples to construct highly grounded prompts for the Gemini API.
+## 3. Database Collection Map
+
+* **`users`**: Stores client name, email (unique index), and hashed passwords.
+* **`reviews`**: Stores code reviews mapped to a `user_id`. Includesparsed summary, structural issues, and raw output.
+* **`translations`**: Mapped translation logs storing source code, target languages, and translations.
+* **`history`**: Flat logging collection recording timestamped user events (`type`, `summary`, `details`).
+
+---
+
+## 4. Integration Routing
+* FastAPI handlers defined as `async def` offload heavy, CPU-bound bcrypt or slow remote Gemini/Groq API network operations to worker threads via `anyio` or standard threadpools. This protects the event loop from being blocked by third-party latency.

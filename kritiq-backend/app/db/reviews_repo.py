@@ -23,9 +23,10 @@ class ReviewsRepository:
     async def get_review_by_id(self, review_id: str) -> dict:
         return self.collection.find_one({"_id": review_id})
 
-    async def get_reviews_by_user(self, user_id: str) -> list:
-        cursor = self.collection.find({"user_id": user_id}).sort("created_at", -1)
+    async def get_reviews_by_user(self, user_id: str, limit: int = 20, skip: int = 0) -> list:
+        cursor = self.collection.find({"user_id": user_id}).sort("created_at", -1).skip(skip).limit(limit)
         return list(cursor)
+
 
 reviews_repo = ReviewsRepository()
 

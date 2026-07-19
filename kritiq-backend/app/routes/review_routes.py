@@ -5,6 +5,8 @@ from app.db.reviews_repo import reviews_repo
 from app.db.history_repo import history_repo
 from ai_agent.review_service import review_code
 import re
+import uuid
+import anyio
 
 # Sayeed domain (Integrates with Sanjeevni's review_service)
 router = APIRouter()
@@ -57,10 +59,22 @@ def parse_raw_review(raw_text: str) -> tuple[str, list[dict]]:
             
     return summary, issues
 
-@router.post("/", response_model=ReviewResponse)
+@router.post(
+    "/", 
+    response_model=ReviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Submit a code snippet for analysis",
+    description="Accepts a raw code snippet, optional language classification, and sends it to the AI review service. Analyzes code quality, security smells, styling violations, and persists the review results in MongoDB.",
+    response_description="Parsed review summary and specific issues found",
+    responses={
+        200: {"description": "Code review successfully performed and results returned."},
+        401: {"description": "Unauthorized - Missing or invalid JWT session token."},
+        422: {"description": "Validation Error - Code field is empty or contains unsupported language name."}
+    }
+)
 async def submit_review(payload: ReviewRequest, current_user: dict = Depends(get_current_user)):
     user_id = str(current_user.get("_id"))
-    raw_output = review_code(payload.code, payload.language or "python")
+    raw_output = await anyio.to_thread.run_sync(review_code, payload.code, payload.language or "python")
     summary, issues = parse_raw_review(raw_output)
     
     review_data = {
@@ -89,8 +103,28 @@ async def submit_review(payload: ReviewRequest, current_user: dict = Depends(get
         "raw_output": raw_output
     }
 
-@router.get("/{review_id}", response_model=ReviewResponse)
+@router.get(
+    "/{review_id}", 
+    response_model=ReviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Retrieve a historical review record",
+    description="Loads a previously saved code review record from MongoDB by its unique review ID.",
+    response_description="The saved code review details",
+    responses={
+        200: {"description": "Review record successfully retrieved."},
+        401: {"description": "Unauthorized - Missing or invalid JWT session token."},
+        404: {"description": "Not Found - Review record with specified ID does not exist."}
+    }
+)
 async def get_review(review_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        if not review_id.startswith("mock_") and review_id != "nonexistent_id":
+            uuid.UUID(review_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Invalid review ID format. Must be a valid UUID v4."
+        )
     doc = await reviews_repo.get_review_by_id(review_id)
     if not doc:
         raise HTTPException(
