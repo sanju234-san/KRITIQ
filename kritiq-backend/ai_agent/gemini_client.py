@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import httpx
 from google import genai
 from google.genai import types
-from google.genai.errors import APIError, ClientError
+from google.genai.errors import APIError
 
 load_dotenv()
 
@@ -13,7 +13,7 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY not found. Check your .env file.")
 
-# Configure the client with a 30-second (30,000 milliseconds) request timeout
+# Configure client
 client = genai.Client(
     api_key=API_KEY,
     http_options=types.HttpOptions(timeout=30_000)
@@ -21,6 +21,11 @@ client = genai.Client(
 
 
 def ask_gemini(prompt: str) -> str:
+    """
+    Executes prompt against Gemini 2.5 Flash.
+    On timeout, 429, 503, 504, or any Gemini API failure,
+    logs the fallback message and delegates to Groq Llama-3.
+    """
     start_time = time.perf_counter()
     gemini_failed = False
     gemini_error = None
@@ -31,21 +36,21 @@ def ask_gemini(prompt: str) -> str:
             contents=prompt
         )
         return response.text
-    except httpx.TimeoutException as e:
-        raise TimeoutError("The request to Gemini API timed out after 30 seconds.") from e
+    except (httpx.TimeoutException, TimeoutError) as e:
+        gemini_failed = True
+        gemini_error = e
     except APIError as e:
-        if e.code in (429, 503):
-            gemini_failed = True
-            gemini_error = e
-        else:
-            print(f"Gemini API error: {e}")
-            raise
+        gemini_failed = True
+        gemini_error = e
+    except Exception as e:
+        gemini_failed = True
+        gemini_error = e
     finally:
         duration = time.perf_counter() - start_time
         print(f"Gemini call took {duration:.2f} seconds")
 
     if gemini_failed and gemini_error:
-        print(f"[FALLBACK] Gemini unavailable (quota/overload) — retrying with Groq...")
+        print("[Gemini timeout] Switching to Groq Llama-3 fallback...")
         from ai_agent.groq_client import ask_groq
         groq_start_time = time.perf_counter()
         try:
@@ -53,23 +58,8 @@ def ask_gemini(prompt: str) -> str:
             return result
         except Exception as groq_err:
             raise RuntimeError(
-                f"Both primary (Gemini) and fallback (Groq) services failed.\n"
-                f"Gemini Error: {gemini_error}\n"
-                f"Groq Error: {groq_err}"
+                f"Both primary (Gemini) and fallback (Groq) services failed: {groq_err}"
             ) from groq_err
         finally:
             groq_duration = time.perf_counter() - groq_start_time
             print(f"Groq fallback call took {groq_duration:.2f} seconds")
-
-
-
-if __name__ == "__main__":
-    from ai_agent.prompts.review_prompt import build_review_prompt
-
-    hardcoded_code = """
-def add(a, b):
-    return a+b
-"""
-
-    prompt = build_review_prompt(hardcoded_code, language="python")
-    print(ask_gemini(prompt))

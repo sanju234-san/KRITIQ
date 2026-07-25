@@ -1,0 +1,2 @@
+[console_scripts]
+kritiq = cli.main:app

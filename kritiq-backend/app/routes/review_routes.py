@@ -4,11 +4,13 @@ from app.auth.dependencies import get_current_user
 from app.db.reviews_repo import reviews_repo
 from app.db.history_repo import history_repo
 from ai_agent.review_service import review_code
+from ai_agent.groq_client import ask_groq
+from ai_agent.prompts.review_prompt import build_review_prompt
 import re
 import uuid
 import anyio
 
-# Sayeed domain (Integrates with Sanjeevni's review_service)
+# Sayeed domain (Integrates with Sanjeevni's review_service and fallback to Groq)
 router = APIRouter()
 
 def parse_raw_review(raw_text: str) -> tuple[str, list[dict]]:
@@ -64,17 +66,28 @@ def parse_raw_review(raw_text: str) -> tuple[str, list[dict]]:
     response_model=ReviewResponse,
     status_code=status.HTTP_200_OK,
     summary="Submit a code snippet for analysis",
-    description="Accepts a raw code snippet, optional language classification, and sends it to the AI review service. Analyzes code quality, security smells, styling violations, and persists the review results in MongoDB.",
-    response_description="Parsed review summary and specific issues found",
-    responses={
-        200: {"description": "Code review successfully performed and results returned."},
-        401: {"description": "Unauthorized - Missing or invalid JWT session token."},
-        422: {"description": "Validation Error - Code field is empty or contains unsupported language name."}
-    }
+    description="Accepts a raw code snippet, optional language classification, and sends it to the AI review service. If Gemini times out, automatically falls back to Groq Llama3 for zero-downtime execution.",
+    response_description="Parsed review summary and specific issues found"
 )
 async def submit_review(payload: ReviewRequest, current_user: dict = Depends(get_current_user)):
     user_id = str(current_user.get("_id"))
-    raw_output = await anyio.to_thread.run_sync(review_code, payload.code, payload.language or "python")
+    raw_output = None
+    
+    # Try primary Gemini AI engine
+    try:
+        raw_output = await anyio.to_thread.run_sync(review_code, payload.code, payload.language or "python")
+    except Exception as err:
+        print(f"[FALLBACK TRIGGERED] Gemini error/timeout ({err}) — switching to Groq Llama-3...")
+        try:
+            prompt = build_review_prompt(payload.code, language=payload.language or "python")
+            raw_output = await anyio.to_thread.run_sync(ask_groq, prompt)
+        except Exception as groq_err:
+            print("Groq fallback error:", groq_err)
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail=f"Both primary AI (Gemini) and fallback AI (Groq) failed: {str(groq_err)}"
+            )
+
     summary, issues = parse_raw_review(raw_output)
     
     review_data = {
@@ -107,14 +120,7 @@ async def submit_review(payload: ReviewRequest, current_user: dict = Depends(get
     "/{review_id}", 
     response_model=ReviewResponse,
     status_code=status.HTTP_200_OK,
-    summary="Retrieve a historical review record",
-    description="Loads a previously saved code review record from MongoDB by its unique review ID.",
-    response_description="The saved code review details",
-    responses={
-        200: {"description": "Review record successfully retrieved."},
-        401: {"description": "Unauthorized - Missing or invalid JWT session token."},
-        404: {"description": "Not Found - Review record with specified ID does not exist."}
-    }
+    summary="Retrieve a historical review record"
 )
 async def get_review(review_id: str, current_user: dict = Depends(get_current_user)):
     try:

@@ -7,7 +7,8 @@ from app.routes import (
     review_routes,
     translation_routes,
     explanation_routes,
-    history_routes
+    history_routes,
+    chat_routes
 )
 from app.core.config import settings
 from app.core.error_handlers import register_error_handlers
@@ -25,7 +26,8 @@ app = FastAPI(
         {"name": "translations", "description": "Translate source code from one programming language to another."},
         {"name": "explanations", "description": "Retrieve plain English detailed explanations of code block functionality."},
         {"name": "history", "description": "Access paginated lists of past code operations and analysis outcomes."},
-        {"name": "repositories", "description": "Manage repository configurations and GitHub connection states."}
+        {"name": "repositories", "description": "Manage repository configurations and GitHub connection states."},
+        {"name": "chat", "description": "Interactive multi-turn AI assistant chat session."}
     ]
 )
 
@@ -71,8 +73,8 @@ app.include_router(review_routes.router, prefix="/reviews", tags=["Reviews"])
 app.include_router(translation_routes.router, prefix="/translations", tags=["Translations"])
 app.include_router(explanation_routes.router, prefix="/explanations", tags=["Explanations"])
 app.include_router(history_routes.router, prefix="/history", tags=["History"])
+app.include_router(chat_routes.router, prefix="/chat", tags=["Chat"])
 
 @app.get("/", summary="Kritiq API health check root")
 async def root():
     return {"message": "Kritiq API is running."}
-

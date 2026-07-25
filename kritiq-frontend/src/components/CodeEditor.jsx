@@ -1,14 +1,32 @@
 import React from 'react'
+import Editor from '@monaco-editor/react'
 
-// Dev domain - Monaco Editor wrapper stub
-export default function CodeEditor({ code, onChange, language }) {
+export default function CodeEditor({ code, onChange, language = 'python', readOnly = false, height = '100%' }) {
+  const handleEditorChange = (value) => {
+    if (onChange) {
+      onChange(value || '')
+    }
+  }
+
   return (
-    <div className="bg-gray-900 text-white p-4 font-mono text-sm h-full">
-      {/* TODO: Integrate @monaco-editor/react */}
-      <textarea
-        className="w-full h-full bg-transparent border-0 resize-none outline-none"
-        value={code}
-        onChange={(e) => onChange(e.target.value)}
+    <div className="relative w-full h-full min-h-[300px] bg-[#1e1e1e] rounded-lg overflow-hidden border border-outline-variant">
+      <Editor
+        height={height}
+        language={language.toLowerCase()}
+        value={code || ''}
+        theme="vs-dark"
+        onChange={handleEditorChange}
+        options={{
+          readOnly: readOnly,
+          minimap: { enabled: false },
+          fontSize: 13,
+          fontFamily: "'JetBrains Mono', monospace",
+          lineHeight: 20,
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+          padding: { top: 12, bottom: 12 },
+          lineNumbersMinChars: 3,
+        }}
       />
     </div>
   )

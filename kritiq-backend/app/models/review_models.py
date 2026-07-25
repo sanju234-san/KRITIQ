@@ -2,7 +2,7 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Optional
 
-SUPPORTED_LANGUAGES = {"python", "javascript", "typescript", "java", "c", "cpp", "csharp", "go", "rust", "ruby", "php"}
+SUPPORTED_LANGUAGES = {"python", "javascript", "typescript", "java", "c", "cpp", "csharp", "go", "rust", "ruby", "php", "gitpatch", "diff"}
 
 class ReviewIssue(BaseModel):
     title: str = Field(
@@ -37,7 +37,7 @@ class ReviewRequest(BaseModel):
     code: str = Field(
         ..., 
         min_length=1, 
-        max_length=100000, 
+        max_length=500000, 
         description="The raw code snippet to review (cannot be empty)", 
         example="def double(x): return x * 2"
     )

@@ -1,0 +1,10 @@
+{
+  "version": "2.4.12-stable",
+  "engine": "gemini-2.5-flash",
+  "max_file_size_kb": 500,
+  "rules": [
+    "security",
+    "performance",
+    "code_smells"
+  ]
+}

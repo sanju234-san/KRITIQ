@@ -4,10 +4,12 @@ from app.auth.dependencies import get_current_user
 from app.db.translations_repo import translations_repo
 from app.db.history_repo import history_repo
 from ai_agent.translation_service import translate_code
+from ai_agent.groq_client import ask_groq
+from ai_agent.prompts.translation_prompt import build_translation_prompt
 import uuid
 import anyio
 
-# Sayeed domain (Integrates with Sanjeevni's translation_service)
+# Sayeed domain (Integrates with Sanjeevni's translation_service and fallback to Groq)
 router = APIRouter()
 
 @router.post(
@@ -15,20 +17,27 @@ router = APIRouter()
     response_model=TranslationResponse,
     status_code=status.HTTP_200_OK,
     summary="Translate code to another programming language",
-    description="Translates the provided source code from one supported language to another using the AI translation service and stores the translation mapping in MongoDB.",
-    response_description="The translated code snippet and notes",
-    responses={
-        200: {"description": "Translation successfully completed and results returned."},
-        401: {"description": "Unauthorized - Missing or invalid JWT session token."},
-        422: {"description": "Validation Error - Source/Target language unsupported or source_code field is empty/whitespace."}
-    }
+    description="Translates the provided source code using Gemini AI. If Gemini times out or fails, automatically falls back to Groq Llama-3."
 )
 async def submit_translation(payload: TranslationRequest, current_user: dict = Depends(get_current_user)):
     user_id = str(current_user.get("_id"))
+    translated = None
     
-    translated = await anyio.to_thread.run_sync(
-        translate_code, payload.source_code, payload.source_language, payload.target_language
-    )
+    try:
+        translated = await anyio.to_thread.run_sync(
+            translate_code, payload.source_code, payload.source_language, payload.target_language
+        )
+    except Exception as err:
+        print(f"[FALLBACK TRIGGERED] Gemini translation error/timeout ({err}) — switching to Groq Llama-3...")
+        try:
+            prompt = build_translation_prompt(payload.source_code, payload.source_language, payload.target_language)
+            translated = await anyio.to_thread.run_sync(ask_groq, prompt)
+        except Exception as groq_err:
+            print("Groq fallback error:", groq_err)
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail=f"Both primary AI (Gemini) and fallback AI (Groq) failed: {str(groq_err)}"
+            )
     
     translation_data = {
         "source_code": payload.source_code,
@@ -59,14 +68,7 @@ async def submit_translation(payload: TranslationRequest, current_user: dict = D
     "/{translation_id}", 
     response_model=TranslationResponse,
     status_code=status.HTTP_200_OK,
-    summary="Retrieve a historical translation record",
-    description="Loads a previously saved code translation record from MongoDB by its unique translation ID.",
-    response_description="The saved translation details",
-    responses={
-        200: {"description": "Translation record successfully retrieved."},
-        401: {"description": "Unauthorized - Missing or invalid JWT session token."},
-        404: {"description": "Not Found - Translation record with specified ID does not exist."}
-    }
+    summary="Retrieve a historical translation record"
 )
 async def get_translation(translation_id: str, current_user: dict = Depends(get_current_user)):
     try:

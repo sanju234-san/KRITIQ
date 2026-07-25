@@ -1,0 +1,9 @@
+# Kritiq Ignore Rules
+node_modules/
+dist/
+build/
+.git/
+venv/
+__pycache__/
+*.min.js
+*.pyc

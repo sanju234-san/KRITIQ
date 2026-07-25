@@ -1,9 +1,9 @@
 import axiosInstance from './axiosInstance.js'
 
-// Dev domain - Translation API stubs
+// Dev domain - Translation API helper
 export const translationApi = {
   submitTranslation: async (payload) => {
-    const response = await axiosInstance.post('/translations', payload)
+    const response = await axiosInstance.post('/translations/', payload)
     return response.data
   },
   getTranslationResult: async (id) => {

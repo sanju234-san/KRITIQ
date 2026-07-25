@@ -1,14 +1,12 @@
 import os
 import requests
 from dotenv import load_dotenv
+from repo_integration.local_clone import LocalCloneManager
 
 load_dotenv()
 
 GITHUB_API_BASE = "https://api.github.com"
 
-# Load the optional GitHub personal access token from the environment.
-# If present: authenticated requests (5,000 req/hour, private repo access).
-# If absent:  unauthenticated requests (60 req/hour, public repos only).
 _GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 HEADERS = {
@@ -25,38 +23,43 @@ else:
 
 def list_repo_files(owner: str, repo: str, path: str = "") -> list[str]:
     """
-    Calls the GitHub REST API to list files and directories at the given
-    path inside a repository. Returns a list of entry names.
-
-    Uses an authenticated request if GITHUB_TOKEN is set in the environment,
-    falling back to unauthenticated (60 req/hour) otherwise.
+    Calls the GitHub REST API to list files and directories at the given path.
+    If the REST API fails, times out, or hits rate limits, falls back to cloning
+    the repository via LocalCloneManager (GitPython).
     """
     url = f"{GITHUB_API_BASE}/repos/{owner}/{repo}/contents/{path}"
+    use_fallback = False
 
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
-    except requests.exceptions.ConnectionError:
-        return ["Error: could not connect to GitHub API — check your network connection."]
-    except requests.exceptions.Timeout:
-        return ["Error: request to GitHub API timed out."]
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, dict):
+                return [data.get("name", "")]
+            return [entry["name"] for entry in data]
+        elif response.status_code == 403 and int(response.headers.get("X-RateLimit-Remaining", -1)) == 0:
+            print("[FALLBACK] GitHub REST API rate limit reached — falling back to LocalCloneManager...")
+            use_fallback = True
+        elif response.status_code == 404:
+            return ["Error: repository or path not found."]
+        else:
+            use_fallback = True
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        print(f"[FALLBACK] GitHub REST API error ({e}) — falling back to LocalCloneManager...")
+        use_fallback = True
 
-    if response.status_code == 404:
-        return ["Error: repository or path not found."]
+    if use_fallback:
+        repo_url = f"https://github.com/{owner}/{repo}.git"
+        try:
+            cloned_dir = LocalCloneManager.clone_from(repo_url, token=_GITHUB_TOKEN)
+            target_path = os.path.join(cloned_dir, path) if path else cloned_dir
+            if os.path.exists(target_path) and os.path.isdir(target_path):
+                files = os.listdir(target_path)
+                LocalCloneManager.cleanup(cloned_dir)
+                return files
+            LocalCloneManager.cleanup(cloned_dir)
+            return ["Error: path not found in cloned repository."]
+        except Exception as clone_err:
+            return [f"Error: GitHub API and LocalCloneManager fallback both failed ({clone_err})."]
 
-    if response.status_code == 403:
-        # Distinguish rate-limit responses from other 403s
-        if int(response.headers.get("X-RateLimit-Remaining", -1)) == 0:
-            reset_ts = response.headers.get("X-RateLimit-Reset", "unknown")
-            return [f"Error: GitHub API rate limit exceeded. Quota resets at Unix timestamp {reset_ts}."]
-        return ["Error: access forbidden — the repository may be private or the request was blocked."]
-
-    if response.status_code != 200:
-        return [f"Error: unexpected GitHub API response {response.status_code}."]
-
-    data = response.json()
-
-    # /contents/ returns a list when path is a directory, dict when a single file
-    if isinstance(data, dict):
-        return [data.get("name", "")]
-
-    return [entry["name"] for entry in data]
+    return ["Error: could not retrieve repository contents."]

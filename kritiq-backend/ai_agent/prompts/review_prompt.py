@@ -18,21 +18,22 @@ Consider whether this code might duplicate logic or violate conventions used els
 """
 
     prompt = f"""
-You are a careful, experienced code reviewer.
-Review the following {language} code and identify any issues.
+You are a principal software engineer and security auditor performing a comprehensive code review.
+Review the following {language} code and identify actionable bugs, security vulnerabilities, edge cases, performance bottlenecks, and structural code smells. Avoid trivial formatting nitpicks.
 
-For each issue you find, provide:
-- A short title for the issue
-- An explanation of why it matters
-- A suggested fix, if applicable
+For each issue found, provide:
+- A short descriptive title
+- The line number (e.g. line 12) if applicable
+- An explanation of the root cause and security/architectural impact
+- A concrete, production-ready suggested code fix
 {reference_section}{context_section}
 Structure your response as:
-Summary: <a 1-2 sentence overview of the code's overall quality>
+Summary: <a 1-2 sentence overview of the code's overall quality and risk profile>
 Issues:
-1. <issue title> - <explanation and suggested fix>
-2. <issue title> - <explanation and suggested fix>
+1. <issue title> - <explanation, line number, and suggested fix>
+2. <issue title> - <explanation, line number, and suggested fix>
 
 Code:
 {code}
 """
-    return prompt.strip()
+    return prompt.strip()

@@ -2,4 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dev domain - Add custom overrides below */
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans selection:bg-primary/30 selection:text-primary;
+  }
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.code-grid {
+  background-image: 
+    linear-gradient(to right, #1c2026 1px, transparent 1px),
+    linear-gradient(to bottom, #1c2026 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.scanline {
+  background: linear-gradient(to bottom, transparent 50%, rgba(210, 187, 255, 0.02) 50%);
+  background-size: 100% 4px;
+}
+
+.glow-hover:focus-within {
+  box-shadow: 0 0 0 2px rgba(210, 187, 255, 0.2);
+}
+
+.code-glow {
+  box-shadow: 0 0 20px rgba(210, 187, 255, 0.1);
+}
+
+.pipeline-dash {
+  stroke-dasharray: 8;
+  animation: dash 30s linear infinite;
+}
+
+@keyframes dash {
+  to { stroke-dashoffset: -1000; }
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
