@@ -48,6 +48,7 @@ async def submit_translation(payload: TranslationRequest, current_user: dict = D
     saved_doc = await translations_repo.save_translation(user_id, translation_data)
     
     details = {
+        "translation_id": saved_doc["_id"],
         "source_language": payload.source_language,
         "target_language": payload.target_language
     }

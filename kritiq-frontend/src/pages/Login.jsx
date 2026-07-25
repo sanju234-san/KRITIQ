@@ -41,21 +41,42 @@ export default function Login() {
     setErrorMsg('')
     const demoEmail = 'github_dev@kritiq.io'
     const demoPassword = 'githubdevpwd123'
+    const demoName = 'GitHub Developer'
 
     try {
       if (auth?.login) {
         try {
           await auth.login(demoEmail, demoPassword)
-        } catch {
-          if (auth?.register) {
-            await auth.register('GitHub Developer', demoEmail, demoPassword)
+        } catch (_loginErr) {
+          // If login failed (user likely doesn't exist yet), try to register.
+          // If register ALSO fails with "already registered" (race / previous run),
+          // fall back to a final login attempt so we still get a valid session.
+          try {
+            await auth.register(demoName, demoEmail, demoPassword)
+          } catch (registerErr) {
+            const detail = registerErr?.response?.data?.detail
+            const isAlreadyRegistered =
+              typeof detail === 'string' &&
+              /already registered/i.test(detail)
+            if (isAlreadyRegistered && auth?.login) {
+              await auth.login(demoEmail, demoPassword)
+            } else {
+              throw registerErr
+            }
           }
         }
       }
       navigate('/dashboard')
     } catch (err) {
       console.error('GitHub auth error:', err)
-      setErrorMsg('Failed to log in with GitHub account.')
+      const detail = err?.response?.data?.detail
+      if (Array.isArray(detail)) {
+        setErrorMsg(detail.map((d) => `${d.loc ? d.loc[d.loc.length - 1] + ': ' : ''}${d.msg}`).join('; '))
+      } else if (typeof detail === 'string') {
+        setErrorMsg(detail)
+      } else {
+        setErrorMsg('Failed to log in with GitHub account.')
+      }
     } finally {
       setIsSubmitting(false)
     }

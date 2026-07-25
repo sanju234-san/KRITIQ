@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import NavBar from '../components/NavBar'
 import CodeEditor from '../components/CodeEditor'
@@ -8,9 +8,10 @@ import { repositoryApi } from '../api/repositoryApi.js'
 
 export default function TranslationSubmit() {
   const navigate = useNavigate()
-  const [sourceLang, setSourceLang] = useState('python')
+  const location = useLocation()
+  const [sourceLang, setSourceLang] = useState(location.state?.sourceLang || 'python')
   const [targetLang, setTargetLang] = useState('java')
-  const [code, setCode] = useState(`def calculate_discount(price: float, discount_percent: float) -> float:
+  const [code, setCode] = useState(location.state?.code || `def calculate_discount(price: float, discount_percent: float) -> float:
     if price < 0 or discount_percent < 0:
         raise ValueError("Price and discount must be positive")
     

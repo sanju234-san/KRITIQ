@@ -98,6 +98,7 @@ async def submit_review(payload: ReviewRequest, current_user: dict = Depends(get
     saved_doc = await reviews_repo.save_review(user_id, review_data)
     
     details = {
+        "review_id": saved_doc["_id"],
         "language": payload.language or "python",
         "filename": payload.filename,
         "issues_count": len(issues)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import NavBar from '../components/NavBar'
 import CodeEditor from '../components/CodeEditor'
@@ -8,9 +8,10 @@ import { repositoryApi } from '../api/repositoryApi.js'
 
 export default function ReviewSubmit() {
   const navigate = useNavigate()
-  const [language, setLanguage] = useState('python')
-  const [filename, setFilename] = useState('app.py')
-  const [code, setCode] = useState(`def count_elements(items):
+  const location = useLocation()
+  const [language, setLanguage] = useState(location.state?.language || 'python')
+  const [filename, setFilename] = useState(location.state?.filename || 'app.py')
+  const [code, setCode] = useState(location.state?.code || `def count_elements(items):
     # Unused variable bug
     debug_mode = True
     total = 0
