@@ -4,10 +4,12 @@ from typing import List, Optional
 import re
 import requests
 import base64
+import os
 
 from app.auth.dependencies import get_current_user
 from app.db.repositories_repo import repositories_repo
 from repo_integration.github_api import list_repo_files, HEADERS, GITHUB_API_BASE
+from repo_integration.local_clone import LocalCloneManager
 
 # Sayeed domain
 router = APIRouter()
@@ -76,10 +78,11 @@ def parse_github_url(url: str) -> tuple[str, str]:
     raise ValueError("Invalid GitHub repository URL format")
 
 
-def fetch_all_repo_files_recursive(owner: str, name: str) -> list[str]:
+def fetch_all_repo_files_recursive(owner: str, name: str, path: str = "") -> list[str]:
     """
     Recursively lists all real files inside a repository (including subdirectories like client/ and server/)
-    using the GitHub Git Trees API.
+    using the GitHub Git Trees API with recursive=1. Returns ONLY file paths (type == 'blob'),
+    never directory entries, so folders never appear as if they are selectable files.
     """
     branch = "main"
     try:
@@ -95,15 +98,48 @@ def fetch_all_repo_files_recursive(owner: str, name: str) -> list[str]:
         if resp.status_code == 200:
             data = resp.json()
             tree = data.get("tree", [])
+            truncated = bool(data.get("truncated", False))
             # Filter type == 'blob' (files only, excluding directory entries)
             file_paths = [item["path"] for item in tree if item.get("type") == "blob"]
-            if file_paths:
+            if path:
+                prefix = path.rstrip("/") + "/"
+                file_paths = [p[len(prefix):] for p in file_paths if p.startswith(prefix)]
+            if file_paths and not truncated:
                 return file_paths
     except Exception as e:
         print("Git Trees API recursive fetch failed:", e)
 
-    # Fallback to root contents list
-    return list_repo_files(owner, name)
+    # Fallback: clone the repo and walk the filesystem (still files-only, no folders returned)
+    repo_url = f"https://github.com/{owner}/{name}.git"
+    try:
+        import os as _os
+        token = HEADERS.get("Authorization", "").replace("Bearer ", "") or None
+        cloned_dir = LocalCloneManager.clone_from(repo_url, token=token)
+        root_dir = _os.path.join(cloned_dir, path) if path else cloned_dir
+        collected: list[str] = []
+        if _os.path.exists(root_dir) and _os.path.isdir(root_dir):
+            for dirpath, _dirnames, filenames in _os.walk(root_dir):
+                # Skip .git metadata folder entirely
+                rel_dir = _os.path.relpath(dirpath, cloned_dir).replace("\\", "/")
+                if rel_dir == "." or rel_dir.startswith(".git/") or rel_dir == ".git":
+                    if rel_dir == ".":
+                        rel_dir = ""
+                    else:
+                        continue
+                rel_prefix = ""
+                if rel_dir:
+                    rel_prefix = rel_dir.rstrip("/") + "/"
+                for fname in filenames:
+                    if fname == ".git":
+                        continue
+                    collected.append(rel_prefix + fname)
+        LocalCloneManager.cleanup(cloned_dir)
+        if collected:
+            return collected
+    except Exception as clone_err:
+        print("[FALLBACK] Clone walk failed:", clone_err)
+
+    return ["Error: could not retrieve repository file list."]
 
 
 @router.post(
@@ -180,13 +216,13 @@ async def list_repositories(current_user: dict = Depends(get_current_user)):
     summary="List all files inside a connected repository recursively"
 )
 async def get_repository_files(owner: str, name: str, path: str = "", current_user: dict = Depends(get_current_user)):
-    files = fetch_all_repo_files_recursive(owner, name)
+    files = fetch_all_repo_files_recursive(owner, name, path=path)
     if len(files) == 1 and files[0].startswith("Error:"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=files[0]
         )
-    return {"owner": owner, "name": name, "files": files}
+    return {"owner": owner, "name": name, "path": path, "files": files}
 
 
 @router.get(

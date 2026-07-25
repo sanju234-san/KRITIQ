@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import NavBar from '../components/NavBar'
 import CodeEditor from '../components/CodeEditor'
+import RepoFilePicker from '../components/RepoFilePicker.jsx'
 import { translationApi } from '../api/translationApi.js'
 import { repositoryApi } from '../api/repositoryApi.js'
 
@@ -133,43 +134,42 @@ export default function TranslationSubmit() {
         <main className="mt-16 flex-1 flex flex-col p-lg space-y-md overflow-hidden">
           {/* Connected Repo File Selector Bar */}
           {repos.length > 0 && (
-            <div className="p-md bg-surface-container-high border border-outline-variant/60 rounded-xl flex flex-wrap items-center gap-md flex-shrink-0">
-              <div className="flex items-center gap-xs text-secondary font-bold text-xs font-mono">
-                <span className="material-symbols-outlined text-[18px]">folder_open</span>
-                Connected Repositories:
+            <div className="p-md bg-surface-container-high border border-outline-variant/60 rounded-xl flex flex-col gap-md flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-md">
+                <div className="flex items-center gap-xs text-secondary font-bold text-xs font-mono">
+                  <span className="material-symbols-outlined text-[18px]">folder_open</span>
+                  Connected Repositories:
+                </div>
+
+                {/* Repo Selector Dropdown */}
+                <select
+                  value={selectedRepoId}
+                  onChange={(e) => handleRepoSelect(e.target.value)}
+                  className="bg-surface-container-lowest border border-outline-variant rounded px-sm py-1 font-mono text-code-sm text-on-surface outline-none focus:border-primary text-xs"
+                >
+                  <option value="">-- Choose Repository --</option>
+                  {repos.map((repo) => (
+                    <option key={repo.id || repo._id} value={repo.id || repo._id}>
+                      {repo.owner}/{repo.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Repo Selector Dropdown */}
-              <select
-                value={selectedRepoId}
-                onChange={(e) => handleRepoSelect(e.target.value)}
-                className="bg-surface-container-lowest border border-outline-variant rounded px-sm py-1 font-mono text-code-sm text-on-surface outline-none focus:border-primary text-xs"
-              >
-                <option value="">-- Choose Repository --</option>
-                {repos.map((repo) => (
-                  <option key={repo.id || repo._id} value={repo.id || repo._id}>
-                    {repo.owner}/{repo.name}
-                  </option>
-                ))}
-              </select>
-
-              {/* File Selector Dropdown */}
+              {/* File Picker (tree view) */}
               {selectedRepoId && (
-                <div className="flex items-center gap-xs flex-1 max-w-md">
-                  <span className="material-symbols-outlined text-outline text-[16px]">subdirectory_arrow_right</span>
-                  <select
-                    value={selectedFilePath}
-                    onChange={(e) => handleFileSelect(e.target.value)}
-                    disabled={loadingFiles}
-                    className="w-full bg-surface-container-lowest border border-outline-variant rounded px-sm py-1 font-mono text-code-sm text-on-surface outline-none focus:border-primary text-xs disabled:opacity-50 truncate"
-                  >
-                    <option value="">{loadingFiles ? 'Indexing all repository files...' : '-- Pick File to Translate --'}</option>
-                    {repoFiles.map((file) => (
-                      <option key={file} value={file}>
-                        {file}
-                      </option>
-                    ))}
-                  </select>
+                <div className="w-full">
+                  <RepoFilePicker
+                    files={repoFiles}
+                    selectedPath={selectedFilePath}
+                    onSelectFile={handleFileSelect}
+                    loading={loadingFiles}
+                    loadingText="Indexing all repository files recursively..."
+                    placeholder="-- Pick File to Translate --"
+                    emptyText="No files found in this repository."
+                    labelIcon="subdirectory_arrow_right"
+                    labelText="Repository Files (files only; click folders to expand)"
+                  />
                 </div>
               )}
             </div>

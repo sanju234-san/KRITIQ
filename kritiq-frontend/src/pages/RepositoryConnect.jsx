@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import NavBar from '../components/NavBar'
+import RepoFilePicker from '../components/RepoFilePicker.jsx'
 import { repositoryApi } from '../api/repositoryApi.js'
 
 export default function RepositoryConnect() {
@@ -273,46 +274,38 @@ export default function RepositoryConnect() {
                       {/* File Drawer List */}
                       {isExpanded && (
                         <div className="p-md bg-surface-container-lowest border-t border-outline-variant/40 space-y-sm">
-                          <p className="font-label-caps text-[10px] uppercase text-on-surface-variant tracking-wider font-bold">
-                            Files in {repo.owner}/{repo.name}
-                          </p>
-
-                          {isLoadingFiles ? (
-                            <div className="text-xs font-mono text-on-surface-variant py-xs flex items-center gap-xs">
-                              <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span>
-                              Fetching repository file tree...
-                            </div>
-                          ) : files.length === 0 ? (
-                            <div className="text-xs text-on-surface-variant py-xs">No files found in root directory.</div>
-                          ) : (
-                            <div className="grid md:grid-cols-2 gap-xs font-mono text-code-sm text-xs">
-                              {files.map((file) => (
-                                <div
-                                  key={file}
-                                  className="p-xs bg-surface-container rounded border border-outline-variant/40 flex items-center justify-between hover:bg-surface-container-high"
+                          <RepoFilePicker
+                            files={files}
+                            loading={isLoadingFiles}
+                            loadingText="Fetching repository file tree recursively..."
+                            emptyText="No files found in this repository."
+                            labelIcon="folder_special"
+                            labelText={`Files in ${repo.owner}/${repo.name}`}
+                            renderFileActions={(filePath) => (
+                              <div className="flex items-center gap-xs">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleReviewFile(repo, filePath)
+                                  }}
+                                  className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30 px-sm py-0.5 rounded text-[10px] font-bold"
+                                  title="Review this file"
                                 >
-                                  <span className="text-on-surface truncate pr-2 text-[11px]">{file}</span>
-                                  <div className="flex items-center gap-xs flex-shrink-0">
-                                    <button
-                                      onClick={() => handleReviewFile(repo, file)}
-                                      className="text-[10px] text-primary hover:underline font-sans font-bold px-1"
-                                      title="Review this file"
-                                    >
-                                      Review
-                                    </button>
-                                    <span className="text-outline text-[10px]">|</span>
-                                    <button
-                                      onClick={() => handleTranslateFile(repo, file)}
-                                      className="text-[10px] text-secondary hover:underline font-sans font-bold px-1"
-                                      title="Translate this file"
-                                    >
-                                      Translate
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                                  Review
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleTranslateFile(repo, filePath)
+                                  }}
+                                  className="bg-secondary/10 text-secondary hover:bg-secondary/20 border border-secondary/30 px-sm py-0.5 rounded text-[10px] font-bold"
+                                  title="Translate this file"
+                                >
+                                  Translate
+                                </button>
+                              </div>
+                            )}
+                          />
                         </div>
                       )}
                     </div>
