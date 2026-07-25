@@ -40,13 +40,35 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 # so adding CORSMiddleware now (before routers / custom middlewares) ensures
 # it intercepts preflight OPTIONS requests before anything else tries to
 # route / validate them.
+#
+# Allow list:
+#   1. Explicit hardcoded list of all production + preview frontend origins
+#      we know about (so CORS works even if FRONTEND_URL is stale).
+#   2. FRONTEND_URL env var (per-environment override for Render/Vercel).
+#   3. allow_origin_regex patterns: any *.vercel.app deployment (for preview
+#      branches and future production redeploys) AND any localhost port
+#      (so devs on 5174/3000/etc. don't need code changes).
 # -----------------------------------------------------------------------------
+KNOWN_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://kritiq-navy.vercel.app",
+    "https://kritiq-git-main-sanju234-sans-projects.vercel.app",
+]
+ALLOWED_REMOVE_DUPLICATES = set(KNOWN_ALLOWED_ORIGINS + [FRONTEND_URL])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        FRONTEND_URL,
-    ],
+    allow_origins=list(ALLOWED_REMOVE_DUPLICATES),
+    # Starlette CORSMiddleware accepts a SINGLE regex string for allow_origin_regex.
+    # Use alternation so all three patterns are matched by one compiled regex:
+    #   1. Any *.vercel.app subdomain deployment (production + preview branches)
+    #   2. Any http://localhost:<port> for local dev on any port
+    #   3. Any http://127.0.0.1:<port> for loopback local dev
+    allow_origin_regex=(
+        r"^https://[a-zA-Z0-9\-]+\.vercel\.app$"
+        r"|^http://localhost:\d+$"
+        r"|^http://127\.0\.0\.1:\d+$"
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
