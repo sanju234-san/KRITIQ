@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import os
 from app.routes import (
     auth_routes,
@@ -32,11 +32,36 @@ app = FastAPI(
     ]
 )
 
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+
+# -----------------------------------------------------------------------------
+# CORS middleware MUST be the very first middleware added.
+# Starlette wraps in reverse order: add_middleware wraps the *current* app,
+# so adding CORSMiddleware now (before routers / custom middlewares) ensures
+# it intercepts preflight OPTIONS requests before anything else tries to
+# route / validate them.
+# -----------------------------------------------------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        FRONTEND_URL,
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 register_error_handlers(app)
 
 @app.middleware("http")
 async def limit_request_size(request: Request, call_next):
-    # Enforce 1MB payload body size limit
+    # Enforce 1MB payload body size limit — but NEVER read the body of
+    # OPTIONS preflight requests (browsers send empty bodies; reading it
+    # could confuse downstream ASGI layers).
+    if request.method.upper() == "OPTIONS":
+        return await call_next(request)
+
     content_length = request.headers.get("content-length")
     if content_length:
         try:
@@ -47,8 +72,7 @@ async def limit_request_size(request: Request, call_next):
                 )
         except ValueError:
             pass
-    response = await call_next(request)
-    return response
+    return await call_next(request)
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -60,18 +84,19 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        FRONTEND_URL,
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# -----------------------------------------------------------------------------
+# Catch-all OPTIONS handler.
+# CORSMiddleware normally short-circuits preflight requests, but any
+# OPTIONS that slips through (e.g. missing ACRM header, Render edge proxy
+# rewriting the request, CORS origin mismatch) should NEVER fall through to
+# a POST route handler where Pydantic validates the body and returns 400
+# "Field required: body". This route guarantees OPTIONS always returns 204,
+# and CORSMiddleware will attach the proper ACAO / ACAM / ACAH headers on
+# the way out if the Origin is allow-listed.
+# -----------------------------------------------------------------------------
+@app.options("/{full_path:path}", include_in_schema=False)
+async def options_catch_all(full_path: str):
+    return Response(status_code=204)
 
 app.include_router(auth_routes.router, prefix="/auth", tags=["Authentication"])
 app.include_router(repository_routes.router, prefix="/repositories", tags=["Repositories"])
