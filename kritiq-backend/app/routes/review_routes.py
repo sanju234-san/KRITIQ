@@ -75,7 +75,14 @@ async def submit_review(payload: ReviewRequest, current_user: dict = Depends(get
     
     # Try primary Gemini AI engine
     try:
-        raw_output = await anyio.to_thread.run_sync(review_code, payload.code, payload.language or "python")
+        raw_output = await anyio.to_thread.run_sync(
+            review_code,
+            payload.code,
+            payload.language or "python",
+            payload.file_path,
+            payload.repo_owner,
+            payload.repo_name
+        )
     except Exception as err:
         print(f"[FALLBACK TRIGGERED] Gemini error/timeout ({err}) — switching to Groq Llama-3...")
         try:
@@ -93,7 +100,13 @@ async def submit_review(payload: ReviewRequest, current_user: dict = Depends(get
     review_data = {
         "summary": summary,
         "issues": issues,
-        "raw_output": raw_output
+        "raw_output": raw_output,
+        "code": payload.code,
+        "language": payload.language or "python",
+        "filename": payload.filename,
+        "file_path": payload.file_path,
+        "repo_owner": payload.repo_owner,
+        "repo_name": payload.repo_name
     }
     saved_doc = await reviews_repo.save_review(user_id, review_data)
     
@@ -101,6 +114,9 @@ async def submit_review(payload: ReviewRequest, current_user: dict = Depends(get
         "review_id": saved_doc["_id"],
         "language": payload.language or "python",
         "filename": payload.filename,
+        "file_path": payload.file_path,
+        "repo_owner": payload.repo_owner,
+        "repo_name": payload.repo_name,
         "issues_count": len(issues)
     }
     await history_repo.log_activity(
@@ -142,5 +158,11 @@ async def get_review(review_id: str, current_user: dict = Depends(get_current_us
         "review_id": doc["_id"],
         "summary": doc["summary"],
         "issues": doc["issues"],
-        "raw_output": doc.get("raw_output")
+        "raw_output": doc.get("raw_output"),
+        "code": doc.get("code"),
+        "language": doc.get("language"),
+        "filename": doc.get("filename"),
+        "file_path": doc.get("file_path"),
+        "repo_owner": doc.get("repo_owner"),
+        "repo_name": doc.get("repo_name")
     }

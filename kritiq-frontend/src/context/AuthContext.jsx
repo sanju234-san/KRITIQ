@@ -56,7 +56,6 @@ export const AuthProvider = ({ children }) => {
           setUser(null)
         }
       } else if (storedToken) {
-        // Token exists but is malformed — clear it
         localStorage.removeItem('token')
         setToken(null)
       }
@@ -64,6 +63,18 @@ export const AuthProvider = ({ children }) => {
     }
 
     initAuth()
+  }, [])
+
+  useEffect(() => {
+    const handleSessionExpired = (event) => {
+      const detail = event?.detail || {}
+      console.warn('AuthContext: session expired event received.', detail)
+      localStorage.removeItem('token')
+      setToken(null)
+      setUser(null)
+    }
+    window.addEventListener('kritiq:session-expired', handleSessionExpired)
+    return () => window.removeEventListener('kritiq:session-expired', handleSessionExpired)
   }, [])
 
   const login = async (email, password) => {

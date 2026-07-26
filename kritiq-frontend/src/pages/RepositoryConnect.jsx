@@ -93,7 +93,17 @@ export default function RepositoryConnect() {
       else if (ext === 'rs') language = 'rust'
       else if (ext === 'cpp' || ext === 'c' || ext === 'h') language = 'cpp'
 
-      navigate('/review', { state: { code: res.content || '', filename: filePath, language } })
+      navigate('/review', {
+        state: {
+          code: res.content || '',
+          filename: filePath,
+          file_path: filePath,
+          repo_owner: repo.owner,
+          repo_name: repo.name,
+          repo_id: repo.id || repo._id,
+          language
+        }
+      })
     } catch (err) {
       console.error('Failed to fetch file for review:', err)
     }
@@ -111,7 +121,17 @@ export default function RepositoryConnect() {
       else if (ext === 'rs') sourceLang = 'rust'
       else if (ext === 'cpp' || ext === 'c' || ext === 'h') sourceLang = 'cpp'
 
-      navigate('/translate', { state: { code: res.content || '', filename: filePath, sourceLang } })
+      navigate('/translate', {
+        state: {
+          code: res.content || '',
+          filename: filePath,
+          file_path: filePath,
+          repo_owner: repo.owner,
+          repo_name: repo.name,
+          repo_id: repo.id || repo._id,
+          sourceLang
+        }
+      })
     } catch (err) {
       console.error('Failed to fetch file for translation:', err)
     }

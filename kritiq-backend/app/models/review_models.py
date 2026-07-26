@@ -56,6 +56,21 @@ class ReviewRequest(BaseModel):
         description="Optional filename associated with the code snippet", 
         example="main.py"
     )
+    file_path: Optional[str] = Field(
+        None,
+        description="Optional full file path within the repository (used for MCP sibling-file context retrieval). Set this when reviewing a file from a connected repo to enable project-context-aware review.",
+        example="src/routes/auth_routes.py"
+    )
+    repo_owner: Optional[str] = Field(
+        None,
+        description="Optional GitHub repository owner (org/user) if the code came from a connected GitHub repo. Used alongside repo_name for MCP GitHub sibling-file context retrieval.",
+        example="octocat"
+    )
+    repo_name: Optional[str] = Field(
+        None,
+        description="Optional GitHub repository name if the code came from a connected GitHub repo. Used alongside repo_owner for MCP GitHub sibling-file context retrieval.",
+        example="Hello-World"
+    )
 
     @field_validator("code")
     @classmethod
@@ -93,4 +108,28 @@ class ReviewResponse(BaseModel):
     raw_output: Optional[str] = Field(
         None, 
         description="The raw unparsed output of the AI reviewer service"
+    )
+    code: Optional[str] = Field(
+        None,
+        description="The original source code that was reviewed (populated on GET revisit endpoint for display)"
+    )
+    language: Optional[str] = Field(
+        None,
+        description="Programming language of the reviewed code (populated on GET endpoint)"
+    )
+    filename: Optional[str] = Field(
+        None,
+        description="Original filename of the reviewed code (populated on GET endpoint)"
+    )
+    file_path: Optional[str] = Field(
+        None,
+        description="Original repository file path (populated on GET endpoint for reference)"
+    )
+    repo_owner: Optional[str] = Field(
+        None,
+        description="GitHub repository owner if the code came from a connected repo (populated on GET endpoint)"
+    )
+    repo_name: Optional[str] = Field(
+        None,
+        description="GitHub repository name if the code came from a connected repo (populated on GET endpoint)"
     )

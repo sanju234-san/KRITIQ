@@ -19,4 +19,29 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status
+    if (status === 401) {
+      const wasLoggedIn = !!localStorage.getItem('token')
+      localStorage.removeItem('token')
+      if (wasLoggedIn) {
+        window.dispatchEvent(new CustomEvent('kritiq:session-expired', {
+          detail: {
+            message: 'Your session has expired. Please log in again to continue.',
+            timestamp: Date.now()
+          }
+        }))
+        if (!window.location.pathname.startsWith('/login')) {
+          const currentPath = window.location.pathname + window.location.search
+          const redirectTo = currentPath && currentPath !== '/' ? `?redirect=${encodeURIComponent(currentPath)}` : ''
+          window.location.href = `/login${redirectTo}&expired=1`
+        }
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 export default axiosInstance

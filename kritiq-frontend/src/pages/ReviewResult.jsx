@@ -16,7 +16,7 @@ export default function ReviewResult() {
   const [reviewData, setReviewData] = useState(location.state?.initialResult || null)
   const [code, setCode] = useState(location.state?.code || '# Analyzed code snippet')
   const [language, setLanguage] = useState(location.state?.language || 'python')
-  const [filename] = useState(location.state?.filename || 'snippet.py')
+  const [filename, setFilename] = useState(location.state?.filename || 'snippet.py')
 
   const [loading, setLoading] = useState(!location.state?.initialResult)
   const [error, setError] = useState(null)
@@ -29,6 +29,9 @@ export default function ReviewResult() {
         try {
           const data = await reviewApi.getReviewResult(id)
           setReviewData(data)
+          if (data?.code) setCode(data.code)
+          if (data?.language) setLanguage(data.language)
+          if (data?.filename) setFilename(data.filename)
         } catch (err) {
           console.error('Failed to load review result:', err)
           setError(err?.response?.data?.detail || 'Review record not found or inaccessible.')

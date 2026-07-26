@@ -177,6 +177,8 @@ export default function Dashboard() {
                       ? (act.details?.review_id ? `/review/${act.details.review_id}` : '/history')
                       : act.type === 'translation'
                       ? (act.details?.translation_id ? `/translate/${act.details.translation_id}` : '/history')
+                      : act.type === 'explanation'
+                      ? (act.details?.explanation_id ? `/explanation/${act.details.explanation_id}` : '/history')
                       : '/history'
 
                     return (

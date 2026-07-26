@@ -25,10 +25,16 @@ export default function ReviewSubmit() {
 
   // Repository Selection State
   const [repos, setRepos] = useState([])
-  const [selectedRepoId, setSelectedRepoId] = useState('')
+  const [selectedRepoId, setSelectedRepoId] = useState(location.state?.repo_id || '')
   const [repoFiles, setRepoFiles] = useState([])
-  const [selectedFilePath, setSelectedFilePath] = useState('')
+  const [selectedFilePath, setSelectedFilePath] = useState(location.state?.file_path || '')
   const [loadingFiles, setLoadingFiles] = useState(false)
+
+  // Repo context (owner/name) for MCP sibling retrieval
+  // Priority 1: explicitly selected repo in the form. Priority 2: location state from RepositoryConnect link
+  const [repoOwner, setRepoOwner] = useState(location.state?.repo_owner || '')
+  const [repoName, setRepoName] = useState(location.state?.repo_name || '')
+  const [filePath, setFilePath] = useState(location.state?.file_path || '')
 
   useEffect(() => {
     const fetchRepos = async () => {
@@ -42,15 +48,29 @@ export default function ReviewSubmit() {
     fetchRepos()
   }, [])
 
+  useEffect(() => {
+    if (selectedRepoId && repos.length > 0 && repoFiles.length === 0 && !loadingFiles) {
+      handleRepoSelect(selectedRepoId)
+    }
+  }, [selectedRepoId, repos])
+
   const handleRepoSelect = async (repoId) => {
     setSelectedRepoId(repoId)
     setRepoFiles([])
     setSelectedFilePath('')
 
-    if (!repoId) return
+    if (!repoId) {
+      setRepoOwner('')
+      setRepoName('')
+      setFilePath('')
+      return
+    }
 
     const selectedRepo = repos.find((r) => r.id === repoId || r._id === repoId)
     if (!selectedRepo) return
+
+    setRepoOwner(selectedRepo.owner)
+    setRepoName(selectedRepo.name)
 
     setLoadingFiles(true)
     try {
@@ -63,17 +83,17 @@ export default function ReviewSubmit() {
     }
   }
 
-  const handleFileSelect = async (filePath) => {
-    setSelectedFilePath(filePath)
-    if (!filePath) return
+  const handleFileSelect = async (filePathVal) => {
+    setSelectedFilePath(filePathVal)
+    if (!filePathVal) return
 
     const selectedRepo = repos.find((r) => r.id === selectedRepoId || r._id === selectedRepoId)
     if (!selectedRepo) return
 
-    setFilename(filePath)
+    setFilename(filePathVal)
+    setFilePath(filePathVal)
 
-    // Auto detect language from extension
-    const ext = filePath.split('.').pop().toLowerCase()
+    const ext = filePathVal.split('.').pop().toLowerCase()
     if (ext === 'py') setLanguage('python')
     else if (ext === 'js' || ext === 'jsx') setLanguage('javascript')
     else if (ext === 'ts' || ext === 'tsx') setLanguage('typescript')
@@ -83,7 +103,7 @@ export default function ReviewSubmit() {
     else if (ext === 'cpp' || ext === 'c' || ext === 'h') setLanguage('cpp')
 
     try {
-      const res = await repositoryApi.getFileContent(selectedRepo.owner, selectedRepo.name, filePath)
+      const res = await repositoryApi.getFileContent(selectedRepo.owner, selectedRepo.name, filePathVal)
       if (res?.content) {
         setCode(res.content)
       }
@@ -100,13 +120,35 @@ export default function ReviewSubmit() {
     setErrorMsg('')
 
     try {
-      const result = await reviewApi.submitReview({
+      const payload = {
         code,
         language,
-        filename
-      })
+        filename,
+        file_path: filePath || undefined,
+        repo_owner: repoOwner || undefined,
+        repo_name: repoName || undefined
+      }
 
-      navigate(`/review/${result.review_id}`, { state: { initialResult: result, code, language, filename } })
+      // When user explicitly pastes/uploads code with no repo attached,
+      // we deliberately omit repo fields so MCP sibling retrieval is gracefully
+      // skipped (no repo to retrieve from). RAG examples still run.
+      if (!payload.file_path) delete payload.file_path
+      if (!payload.repo_owner) delete payload.repo_owner
+      if (!payload.repo_name) delete payload.repo_name
+
+      const result = await reviewApi.submitReview(payload)
+
+      navigate(`/review/${result.review_id}`, {
+        state: {
+          initialResult: result,
+          code,
+          language,
+          filename,
+          file_path: filePath,
+          repo_owner: repoOwner,
+          repo_name: repoName
+        }
+      })
     } catch (err) {
       console.error('Failed to submit review:', err)
       let detail = err?.response?.data?.detail

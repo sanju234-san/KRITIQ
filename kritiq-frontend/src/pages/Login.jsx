@@ -1,5 +1,5 @@
-import React, { useState, useContext } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useContext, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 
 export default function Login() {
@@ -7,9 +7,17 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [infoMsg, setInfoMsg] = useState('')
   
   const navigate = useNavigate()
   const auth = useContext(AuthContext)
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('expired') === '1') {
+      setInfoMsg('Your session has expired. Please log in again to continue.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -20,7 +28,8 @@ export default function Login() {
       if (auth?.login) {
         await auth.login(email, password)
       }
-      navigate('/dashboard')
+      const redirectTarget = searchParams.get('redirect')
+      navigate(redirectTarget || '/dashboard', { replace: true })
     } catch (err) {
       console.error('Login error:', err)
       const detail = err?.response?.data?.detail
@@ -48,9 +57,6 @@ export default function Login() {
         try {
           await auth.login(demoEmail, demoPassword)
         } catch (_loginErr) {
-          // If login failed (user likely doesn't exist yet), try to register.
-          // If register ALSO fails with "already registered" (race / previous run),
-          // fall back to a final login attempt so we still get a valid session.
           try {
             await auth.register(demoName, demoEmail, demoPassword)
           } catch (registerErr) {
@@ -66,7 +72,8 @@ export default function Login() {
           }
         }
       }
-      navigate('/dashboard')
+      const redirectTarget = searchParams.get('redirect')
+      navigate(redirectTarget || '/dashboard', { replace: true })
     } catch (err) {
       console.error('GitHub auth error:', err)
       const detail = err?.response?.data?.detail
@@ -109,6 +116,14 @@ export default function Login() {
           </header>
 
           <form onSubmit={handleSubmit} className="space-y-md">
+            {infoMsg && (
+              <div className="p-sm bg-primary-container/40 border border-primary/40 rounded-lg text-primary text-xs flex items-center gap-xs">
+                <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  info
+                </span>
+                <span>{infoMsg}</span>
+              </div>
+            )}
             {errorMsg && (
               <div className="p-sm bg-error-container/30 border border-error/50 rounded-lg text-error text-xs">
                 {errorMsg}

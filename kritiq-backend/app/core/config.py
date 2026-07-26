@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     GITHUB_TOKEN: str = ""
     JWT_SECRET: str = "mock-secret"
     JWT_ALGORITHM: str = "HS256"
-    TOKEN_EXPIRE_MINUTES: int = 15
+    TOKEN_EXPIRE_MINUTES: int = 120
 
 
     class Config:

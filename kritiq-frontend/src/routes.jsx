@@ -9,6 +9,7 @@ import ReviewSubmit from './pages/ReviewSubmit.jsx'
 import ReviewResult from './pages/ReviewResult.jsx'
 import TranslationSubmit from './pages/TranslationSubmit.jsx'
 import TranslationResult from './pages/TranslationResult.jsx'
+import ExplanationResult from './pages/ExplanationResult.jsx'
 import History from './pages/History.jsx'
 import CliPublicDocs from './pages/CliPublicDocs.jsx'
 import CliAppDocs from './pages/CliAppDocs.jsx'
@@ -25,5 +26,6 @@ export const router = createBrowserRouter([
   { path: '/review/:id', element: <ReviewResult /> },
   { path: '/translate', element: <TranslationSubmit /> },
   { path: '/translate/:id', element: <TranslationResult /> },
+  { path: '/explanation/:id', element: <ExplanationResult /> },
   { path: '/history', element: <History /> }
 ])

@@ -37,6 +37,7 @@ export default function History() {
   const filteredItems = historyItems.filter((item) => {
     if (filter === 'review') return item.type === 'review'
     if (filter === 'translation') return item.type === 'translation'
+    if (filter === 'explanation') return item.type === 'explanation'
     return true
   })
 
@@ -83,6 +84,14 @@ export default function History() {
               >
                 Translations
               </button>
+              <button
+                onClick={() => setFilter('explanation')}
+                className={`px-md py-xs rounded text-xs font-bold transition-colors ${
+                  filter === 'explanation' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                Explanations
+              </button>
             </div>
           </div>
 
@@ -114,12 +123,16 @@ export default function History() {
                   ? (item.details?.review_id ? `/review/${item.details.review_id}` : '/review')
                   : item.type === 'translation'
                   ? (item.details?.translation_id ? `/translate/${item.details.translation_id}` : '/translate')
+                  : item.type === 'explanation'
+                  ? (item.details?.explanation_id ? `/explanation/${item.details.explanation_id}` : '/dashboard')
                   : '/dashboard'
 
                 const detailsText = item.details?.filename 
                   ? `File: ${item.details.filename}` 
                   : item.details?.source_language && item.details?.target_language
                   ? `Stack: ${item.details.source_language} → ${item.details.target_language}`
+                  : item.details?.language
+                  ? `Language: ${item.details.language}`
                   : 'Activity log entry'
 
                 return (
@@ -130,7 +143,7 @@ export default function History() {
                     <div className="flex items-center gap-md">
                       <div className="w-10 h-10 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center text-primary flex-shrink-0">
                         <span className="material-symbols-outlined text-[22px]">
-                          {item.type === 'review' ? 'rate_review' : item.type === 'translation' ? 'translate' : 'history'}
+                          {item.type === 'review' ? 'rate_review' : item.type === 'translation' ? 'translate' : item.type === 'explanation' ? 'psychology' : 'history'}
                         </span>
                       </div>
                       <div>
