@@ -7,6 +7,36 @@ import IssueList from '../components/IssueList'
 import LoadingState from '../components/LoadingState'
 import ErrorState from '../components/ErrorState'
 import { reviewApi } from '../api/reviewApi.js'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
+const mdSummaryComponents = {
+  code({ inline, className, children, ...props }) {
+    return inline ? (
+      <code className="bg-surface-container-lowest border border-outline-variant/60 rounded px-1 py-0.5 text-[11px] font-mono text-on-surface" {...props}>
+        {children}
+      </code>
+    ) : (
+      <pre className="bg-surface-container-lowest border border-outline-variant rounded p-sm my-xs overflow-x-auto text-[11px] leading-relaxed">
+        <code className={className} {...props}>{children}</code>
+      </pre>
+    )
+  },
+  p({ children }) {
+    return <p className="font-body-sm text-on-surface leading-relaxed text-xs">{children}</p>
+  },
+  ul({ children }) {
+    return <ul className="list-disc list-inside pl-sm mb-xs space-y-0.5 text-on-surface text-xs">{children}</ul>
+  },
+  ol({ children }) {
+    return <ol className="list-decimal list-inside pl-sm mb-xs space-y-0.5 text-on-surface text-xs">{children}</ol>
+  },
+  li({ children }) { return <li className="text-xs">{children}</li> },
+  strong({ children }) { return <strong className="font-bold">{children}</strong> },
+  a({ href, children }) {
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:brightness-110">{children}</a>
+  },
+}
 
 export default function ReviewResult() {
   const { id } = useParams()
@@ -106,9 +136,11 @@ export default function ReviewResult() {
                       Issues: {issues.length}
                     </span>
                   </div>
-                  <p className="font-body-sm text-on-surface leading-relaxed text-xs">
-                    {summary}
-                  </p>
+                  <div className="ai-md-summary">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdSummaryComponents}>
+                      {summary}
+                    </ReactMarkdown>
+                  </div>
                 </div>
 
                 {/* Tabs Bar */}

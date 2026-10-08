@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse, Response
 import os
 from app.routes import (
     auth_routes,
+    github_oauth_routes,
     repository_routes,
     review_routes,
     translation_routes,
@@ -121,6 +122,7 @@ async def options_catch_all(full_path: str):
     return Response(status_code=204)
 
 app.include_router(auth_routes.router, prefix="/auth", tags=["Authentication"])
+app.include_router(github_oauth_routes.router, prefix="/auth", tags=["Authentication"])
 app.include_router(repository_routes.router, prefix="/repositories", tags=["Repositories"])
 app.include_router(review_routes.router, prefix="/reviews", tags=["Reviews"])
 app.include_router(translation_routes.router, prefix="/translations", tags=["Translations"])

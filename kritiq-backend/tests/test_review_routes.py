@@ -76,13 +76,13 @@ def mock_db_and_services(monkeypatch):
     monkeypatch.setattr(history_repo, "log_activity", mock_log_activity)
     monkeypatch.setattr(history_repo, "get_history_by_user", mock_get_history_by_user)
 
-    def mock_review_code(code: str, language: str = "python") -> str:
+    def mock_review_code(code: str, language: str = "python", file_path=None, repo_owner=None, repo_name=None) -> str:
         return "Summary: Mocked review.\nIssues:\n1. Unused Variable - Line 12 has an unused variable. Remove it."
 
-    def mock_translate_code(code: str, source_lang: str, target_lang: str) -> str:
+    def mock_translate_code(code: str, source_lang: str, target_lang: str, file_path=None) -> str:
         return "public class Mock {}"
 
-    def mock_explain_code(code: str, language: str = "python") -> str:
+    def mock_explain_code(code: str, language: str = "python", file_path=None, repo_owner=None, repo_name=None) -> str:
         return "This is a mocked explanation."
 
     monkeypatch.setattr("app.routes.review_routes.review_code", mock_review_code)

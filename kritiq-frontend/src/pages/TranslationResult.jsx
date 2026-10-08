@@ -6,6 +6,36 @@ import CodeEditor from '../components/CodeEditor'
 import LoadingState from '../components/LoadingState'
 import ErrorState from '../components/ErrorState'
 import { translationApi } from '../api/translationApi.js'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
+const mdNotesComponents = {
+  code({ inline, className, children, ...props }) {
+    return inline ? (
+      <code className="bg-surface-container-lowest border border-outline-variant/60 rounded px-1 py-0.5 text-[11px] font-mono text-on-surface" {...props}>
+        {children}
+      </code>
+    ) : (
+      <pre className="bg-surface-container-lowest border border-outline-variant rounded p-sm my-xs overflow-x-auto text-[11px] leading-relaxed">
+        <code className={className} {...props}>{children}</code>
+      </pre>
+    )
+  },
+  p({ children }) {
+    return <p className="text-on-surface-variant leading-relaxed text-xs font-mono mb-xs">{children}</p>
+  },
+  ul({ children }) {
+    return <ul className="list-disc list-inside pl-sm mb-xs space-y-0.5 text-on-surface-variant text-xs font-mono">{children}</ul>
+  },
+  ol({ children }) {
+    return <ol className="list-decimal list-inside pl-sm mb-xs space-y-0.5 text-on-surface-variant text-xs font-mono">{children}</ol>
+  },
+  li({ children }) { return <li className="text-xs">{children}</li> },
+  strong({ children }) { return <strong className="font-bold">{children}</strong> },
+  a({ href, children }) {
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:brightness-110">{children}</a>
+  },
+}
 
 export default function TranslationResult() {
   const { id } = useParams()
@@ -114,9 +144,11 @@ export default function TranslationResult() {
                   </span>
                   Translation Notes &amp; Insights
                 </div>
-                <p className="font-body-sm text-on-surface-variant leading-relaxed text-xs font-mono">
-                  {notes}
-                </p>
+                <div className="ai-md-notes">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdNotesComponents}>
+                    {notes}
+                  </ReactMarkdown>
+                </div>
               </div>
             </>
           )}

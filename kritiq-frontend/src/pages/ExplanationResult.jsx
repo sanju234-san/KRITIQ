@@ -6,6 +6,51 @@ import CodeEditor from '../components/CodeEditor'
 import LoadingState from '../components/LoadingState'
 import ErrorState from '../components/ErrorState'
 import { explanationApi } from '../api/explanationApi.js'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
+const mdExplComponents = {
+  code({ inline, className, children, ...props }) {
+    return inline ? (
+      <code className="bg-surface-container-lowest border border-outline-variant/60 rounded px-1 py-0.5 text-[12px] font-mono text-on-surface" {...props}>
+        {children}
+      </code>
+    ) : (
+      <pre className="bg-surface-container-lowest border border-outline-variant rounded p-sm my-sm overflow-x-auto text-[12px] leading-relaxed">
+        <code className={className} {...props}>{children}</code>
+      </pre>
+    )
+  },
+  p({ children }) {
+    return <p className="font-body-sm text-on-surface leading-relaxed text-sm mb-sm">{children}</p>
+  },
+  ul({ children }) {
+    return <ul className="list-disc list-inside pl-sm mb-sm space-y-0.5 text-on-surface text-[13px]">{children}</ul>
+  },
+  ol({ children }) {
+    return <ol className="list-decimal list-inside pl-sm mb-sm space-y-0.5 text-on-surface text-[13px]">{children}</ol>
+  },
+  li({ children }) { return <li className="text-[13px]">{children}</li> },
+  strong({ children }) { return <strong className="font-bold text-on-surface">{children}</strong> },
+  a({ href, children }) {
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:brightness-110">{children}</a>
+  },
+  blockquote({ children }) {
+    return <blockquote className="border-l-2 border-outline-variant pl-sm my-sm text-on-surface-variant italic">{children}</blockquote>
+  },
+  h1({ children }) { return <h1 className="font-bold text-lg mb-sm text-on-surface">{children}</h1> },
+  h2({ children }) { return <h2 className="font-bold text-base mb-sm text-on-surface">{children}</h2> },
+  h3({ children }) { return <h3 className="font-bold text-[15px] mb-sm text-on-surface">{children}</h3> },
+  table({ children }) {
+    return <table className="w-full border-collapse border border-outline-variant my-sm text-[12px]">{children}</table>
+  },
+  th({ children }) {
+    return <th className="border border-outline-variant px-sm py-xs bg-surface-container-high text-on-surface font-bold">{children}</th>
+  },
+  td({ children }) {
+    return <td className="border border-outline-variant px-sm py-xs text-on-surface-variant">{children}</td>
+  },
+}
 
 export default function ExplanationResult() {
   const { id } = useParams()
@@ -109,8 +154,10 @@ export default function ExplanationResult() {
                     </span>
                     Plain-Language Explanation
                   </div>
-                  <div className="font-body-sm text-on-surface leading-relaxed text-sm whitespace-pre-wrap break-words">
-                    {explanationText}
+                  <div className="ai-md-explanation break-words">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdExplComponents}>
+                      {explanationText}
+                    </ReactMarkdown>
                   </div>
                 </div>
 

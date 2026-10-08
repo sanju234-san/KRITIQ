@@ -2,21 +2,42 @@ import React, { useState, useContext, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 
+const OAUTH_ERROR_MESSAGES = {
+  github_oauth_not_configured: 'GitHub login is not configured on the server yet. Please sign up with email/password instead, or ask your administrator to configure GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / GITHUB_REDIRECT_URI.',
+  github_access_denied: 'You declined access to your GitHub account. No changes were made.',
+  github_invalid_state: 'GitHub login failed a security check (CSRF state mismatch or timeout). Please try again.',
+  github_missing_code: 'GitHub did not return an authorization code. Please try again.',
+  github_invalid_code: 'GitHub authorization code was expired or already used. Please try again.',
+  github_redirect_uri_mismatch: 'Configuration error: GITHUB_REDIRECT_URI does not match the callback URL set on the GitHub OAuth App. Ask your administrator to update the environment variable or the GitHub App settings.',
+  github_code_exchange_failed: 'Could not complete GitHub login (code exchange failed). Please try again.',
+  github_network_error: 'Network error while contacting GitHub. Please check your connection and try again.',
+  github_api_failed: 'Could not load your GitHub profile after sign-in. Please try again.',
+  github_oauth_error: 'GitHub sign-in failed. Please try again, or create a password-based account instead.',
+  account_linking_failed: 'Your GitHub account could not be linked to a Kritiq session. Please register with an email and password.',
+}
+
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [infoMsg, setInfoMsg] = useState('')
-  
+
   const navigate = useNavigate()
   const auth = useContext(AuthContext)
   const [searchParams] = useSearchParams()
 
   useEffect(() => {
+    const msgs = []
     if (searchParams.get('expired') === '1') {
-      setInfoMsg('Your session has expired. Please log in again to continue.')
+      msgs.push('Your session has expired. Please log in again to continue.')
     }
+    const oauthErr = searchParams.get('error')
+    if (oauthErr) {
+      const resolved = OAUTH_ERROR_MESSAGES[oauthErr] || 'GitHub sign-in was not completed. Please try again or use email/password.'
+      msgs.push(resolved)
+    }
+    if (msgs.length) setInfoMsg(msgs.join(' '))
   }, [searchParams])
 
   const handleSubmit = async (e) => {
@@ -45,48 +66,9 @@ export default function Login() {
     }
   }
 
-  const handleGithubLogin = async () => {
-    setIsSubmitting(true)
-    setErrorMsg('')
-    const demoEmail = 'github_dev@kritiq.io'
-    const demoPassword = 'githubdevpwd123'
-    const demoName = 'GitHub Developer'
-
-    try {
-      if (auth?.login) {
-        try {
-          await auth.login(demoEmail, demoPassword)
-        } catch (_loginErr) {
-          try {
-            await auth.register(demoName, demoEmail, demoPassword)
-          } catch (registerErr) {
-            const detail = registerErr?.response?.data?.detail
-            const isAlreadyRegistered =
-              typeof detail === 'string' &&
-              /already registered/i.test(detail)
-            if (isAlreadyRegistered && auth?.login) {
-              await auth.login(demoEmail, demoPassword)
-            } else {
-              throw registerErr
-            }
-          }
-        }
-      }
-      const redirectTarget = searchParams.get('redirect')
-      navigate(redirectTarget || '/dashboard', { replace: true })
-    } catch (err) {
-      console.error('GitHub auth error:', err)
-      const detail = err?.response?.data?.detail
-      if (Array.isArray(detail)) {
-        setErrorMsg(detail.map((d) => `${d.loc ? d.loc[d.loc.length - 1] + ': ' : ''}${d.msg}`).join('; '))
-      } else if (typeof detail === 'string') {
-        setErrorMsg(detail)
-      } else {
-        setErrorMsg('Failed to log in with GitHub account.')
-      }
-    } finally {
-      setIsSubmitting(false)
-    }
+  const handleGithubLogin = () => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    window.location.href = `${apiBase.replace(/\/$/, '')}/auth/github`
   }
 
   return (

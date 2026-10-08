@@ -53,17 +53,46 @@ class TokenResponse(BaseModel):
 class UserProfileResponse(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     id: str = Field(
-        ..., 
-        description="The unique database ID of the user", 
+        ...,
+        description="The unique database ID of the user",
         example="507f1f77bcf86cd799439011"
     )
     name: str = Field(
-        ..., 
-        description="Display name of the user", 
+        ...,
+        description="Display name of the user",
         example="Sayeed Ahmed"
     )
     email: EmailStr = Field(
-        ..., 
-        description="The registered email of the user", 
+        ...,
+        description="The registered email of the user",
         example="sayeed@example.com"
     )
+    github_username: str | None = Field(
+        default=None,
+        description="GitHub login/username when the user linked a GitHub account via OAuth.",
+        example="octocat"
+    )
+    avatar_url: str | None = Field(
+        default=None,
+        description="Profile picture URL, typically sourced from GitHub on OAuth linking.",
+        example="https://avatars.githubusercontent.com/u/583231?v=4"
+    )
+
+class GithubExchangeRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    code: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        description="Single-use one-time code obtained from the GitHub OAuth callback handoff.",
+        example="kr-oct-abc123def..."
+    )
+
+class GithubExchangeResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    login_url: str | None = Field(
+        default=None,
+        description="If the OAuth callback redirected to /login with a handoff code, clients may POST it here to obtain a Kritiq JWT session."
+    )
+

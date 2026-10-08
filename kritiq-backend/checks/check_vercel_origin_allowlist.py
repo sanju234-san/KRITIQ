@@ -56,10 +56,12 @@ for label, origin in CASES:
 print()
 print("=" * 80)
 print("[REAL POST LOGIN]  with Origin = https://kritiq-navy.vercel.app")
+import os
+
 r = client.post(
     "/auth/login",
     headers={"Origin": "https://kritiq-navy.vercel.app", "Content-Type": "application/json"},
-    json={"email": "github_dev@kritiq.io", "password": "githubdevpwd123"},
+    json={"email": os.environ.get("KRITIQ_CHECK_EMAIL", "check-user@example.com"), "password": os.environ.get("KRITIQ_CHECK_PASSWORD", "ChangeMe-12345678")},
 )
 print(f"< HTTP {r.status_code}")
 print(f"< ACAO = {r.headers.get('Access-Control-Allow-Origin')!r}")

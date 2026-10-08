@@ -8,14 +8,16 @@ load_dotenv()
 
 API_KEY = os.environ.get("GROQ_API_KEY")
 
-if not API_KEY:
-    raise ValueError("GROQ_API_KEY not found. Check your .env file.")
-
-# Configure the client
-client = Groq(
-    api_key=API_KEY,
-    timeout=30.0  # 30 seconds request timeout
-)
+# Configure client lazily so the backend import graph works even when no
+# Groq key is set locally.  ask_groq() below will raise a clear error when
+# actually invoked without credentials.
+client = None
+if API_KEY:
+    try:
+        client = Groq(api_key=API_KEY, timeout=30.0)
+    except Exception as _client_err:
+        print(f"[groq_client] Could not configure Groq client at import: {_client_err}.  ask_groq() will raise at call time.")
+        client = None
 
 
 def ask_groq(prompt: str) -> str:
@@ -24,6 +26,8 @@ def ask_groq(prompt: str) -> str:
     """
     start_time = time.perf_counter()
     try:
+        if client is None:
+            raise RuntimeError("GROQ_API_KEY is not configured in the environment.")
         chat_completion = client.chat.completions.create(
             messages=[
                 {
@@ -32,6 +36,7 @@ def ask_groq(prompt: str) -> str:
                 }
             ],
             model="llama-3.3-70b-versatile",
+            response_format={"type": "json_object"},
         )
         # Extract response text
         content = chat_completion.choices[0].message.content

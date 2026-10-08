@@ -1,21 +1,23 @@
 """
-LIVE end-to-end test replicating the frontend handleGithubLogin flow:
-  1. POST /auth/login with demo GitHub creds -> expect 401 (user doesn't exist yet)
-  2. POST /auth/register with ('GitHub Developer', github_dev@kritiq.io, githubdevpwd123) -> expect 200 + token
+LIVE end-to-end test replicating the frontend email/password auth flow:
+  1. POST /auth/login with demo creds -> expect 401 (user doesn't exist yet)
+  2. POST /auth/register with (KRITIQ_CHECK_NAME, KRITIQ_CHECK_EMAIL, KRITIQ_CHECK_PASSWORD) -> expect 200 + token
   3. GET /auth/profile with the register-returned token -> expect 200 + profile
   4. POST /auth/login again with same creds -> expect 200 + new token
   5. GET /auth/profile with login token -> expect 200 + profile
 
-This matches exactly what Login.jsx handleGithubLogin() does.
+Credentials are configurable via env vars KRITIQ_CHECK_EMAIL / KRITIQ_CHECK_PASSWORD / KRITIQ_CHECK_NAME.
 """
 from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)
 
-DEMO_EMAIL = "github_dev@kritiq.io"
-DEMO_PASSWORD = "githubdevpwd123"
-DEMO_NAME = "GitHub Developer"
+import os
+
+DEMO_EMAIL = os.environ.get("KRITIQ_CHECK_EMAIL", "check-user@example.com")
+DEMO_PASSWORD = os.environ.get("KRITIQ_CHECK_PASSWORD", "ChangeMe-12345678")
+DEMO_NAME = os.environ.get("KRITIQ_CHECK_NAME", "Check User")
 
 def log(step, msg):
     print(f"\n[{step}] {'='*50}")

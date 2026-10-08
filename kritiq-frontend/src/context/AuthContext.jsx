@@ -107,14 +107,52 @@ export const AuthProvider = ({ children }) => {
     return data
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authApi.logout()
+    } catch (_err) {
+      // ignore network errors — still clear client state
+    }
     localStorage.removeItem('token')
     setToken(null)
     setUser(null)
   }
 
+  const loadSession = async () => {
+    const stored = localStorage.getItem('token')
+    if (stored && isValidTokenStructure(stored)) {
+      try {
+        const profile = await authApi.getProfile()
+        setToken(stored)
+        setUser(profile)
+        return profile
+      } catch (err) {
+        localStorage.removeItem('token')
+        setToken(null)
+        setUser(null)
+        throw err
+      }
+    } else if (stored) {
+      localStorage.removeItem('token')
+      setToken(null)
+    }
+    return null
+  }
+
+  const loginWithJwt = async (jwt) => {
+    localStorage.setItem('token', jwt)
+    setToken(jwt)
+    const profile = await authApi.getProfile()
+    setUser(profile)
+    return profile
+  }
+
+  const getProfile = async () => {
+    return await authApi.getProfile()
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, setToken, setUser, loadSession, loginWithJwt, getProfile }}>
       {children}
     </AuthContext.Provider>
   )

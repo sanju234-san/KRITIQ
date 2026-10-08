@@ -16,8 +16,10 @@ BACKEND = "https://kritiq.onrender.com"
 ORIGIN = "https://kritiq-git-main-sanju234-sans-projects.vercel.app"
 PREFLIGHT_URL = BACKEND + "/auth/login"
 
-DEMO_EMAIL = "github_dev@kritiq.io"
-DEMO_PASSWORD = "githubdevpwd123"
+import os
+
+DEMO_EMAIL = os.environ.get("KRITIQ_CHECK_EMAIL", "check-user@example.com")
+DEMO_PASSWORD = os.environ.get("KRITIQ_CHECK_PASSWORD", "ChangeMe-12345678")
 
 session = requests.Session()
 FAIL = []

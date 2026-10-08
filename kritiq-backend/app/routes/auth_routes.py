@@ -77,5 +77,20 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
     return {
         "id": str(current_user.get("_id")),
         "name": current_user.get("name"),
-        "email": current_user.get("email")
+        "email": current_user.get("email"),
+        "github_username": current_user.get("github_username"),
+        "avatar_url": current_user.get("avatar_url"),
     }
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+    summary="Clear client session",
+    description="Stateless JWT logout acknowledgement. The client is responsible for discarding the Bearer token. Reserved for future server-side token revocation if session blacklisting is enabled.",
+    responses={
+        200: {"description": "Logout acknowledged. Client should remove stored token."}
+    }
+)
+async def logout():
+    return {"detail": "Logged out."}

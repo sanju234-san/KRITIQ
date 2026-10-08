@@ -7,31 +7,46 @@ load_dotenv()
 
 GITHUB_API_BASE = "https://api.github.com"
 
-_GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+_GLOBAL_GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
-HEADERS = {
+_GITHUB_BASE_HEADERS = {
     "Accept": "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
-if _GITHUB_TOKEN:
-    HEADERS["Authorization"] = f"Bearer {_GITHUB_TOKEN}"
-    print("GitHub API: authenticated (5,000 req/hour, private repo access enabled)")
+if _GLOBAL_GITHUB_TOKEN:
+    print("GitHub API: shared fallback GITHUB_TOKEN present. Preferring per-user OAuth tokens when available.")
 else:
-    print("GitHub API: using unauthenticated requests (60/hour limit)")
+    print("GitHub API: no shared GITHUB_TOKEN; unauthenticated or per-user OAuth tokens only.")
 
 
-def list_repo_files(owner: str, repo: str, path: str = "") -> list[str]:
-    """
-    Calls the GitHub REST API to list files and directories at the given path.
-    If the REST API fails, times out, or hits rate limits, falls back to cloning
-    the repository via LocalCloneManager (GitPython).
-    """
+def get_user_github_token(current_user: dict | None) -> str | None:
+    if isinstance(current_user, dict):
+        t = current_user.get("github_access_token")
+        if isinstance(t, str) and t:
+            return t
+    return None
+
+
+def get_github_headers(current_user: dict | None = None) -> dict:
+    headers = dict(_GITHUB_BASE_HEADERS)
+    user_token = get_user_github_token(current_user)
+    if user_token:
+        headers["Authorization"] = f"Bearer {user_token}"
+        return headers
+    if _GLOBAL_GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {_GLOBAL_GITHUB_TOKEN}"
+    return headers
+
+
+def list_repo_files(owner: str, repo: str, path: str = "", current_user: dict | None = None) -> list[str]:
+    headers = get_github_headers(current_user)
     url = f"{GITHUB_API_BASE}/repos/{owner}/{repo}/contents/{path}"
     use_fallback = False
+    token_for_clone = get_user_github_token(current_user) or _GLOBAL_GITHUB_TOKEN
 
     try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, dict):
@@ -51,7 +66,7 @@ def list_repo_files(owner: str, repo: str, path: str = "") -> list[str]:
     if use_fallback:
         repo_url = f"https://github.com/{owner}/{repo}.git"
         try:
-            cloned_dir = LocalCloneManager.clone_from(repo_url, token=_GITHUB_TOKEN)
+            cloned_dir = LocalCloneManager.clone_from(repo_url, token=token_for_clone)
             target_path = os.path.join(cloned_dir, path) if path else cloned_dir
             if os.path.exists(target_path) and os.path.isdir(target_path):
                 files = os.listdir(target_path)

@@ -10,14 +10,20 @@ load_dotenv()
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 
-if not API_KEY:
-    raise ValueError("GEMINI_API_KEY not found. Check your .env file.")
-
-# Configure client
-client = genai.Client(
-    api_key=API_KEY,
-    http_options=types.HttpOptions(timeout=30_000)
-)
+# Configure client lazily — don't crash the whole backend at import time
+# just because GEMINI_API_KEY isn't set yet.  ask_gemini() below will raise
+# a clean RuntimeError when actually invoked without a key, so auth/OAuth
+# routes and the test suite still run locally.
+client = None
+if API_KEY:
+    try:
+        client = genai.Client(
+            api_key=API_KEY,
+            http_options=types.HttpOptions(timeout=30_000)
+        )
+    except Exception as _client_err:
+        print(f"[gemini_client] Could not configure genai.Client at import: {_client_err}.  ask_gemini() will fall back to Groq at runtime.")
+        client = None
 
 
 def ask_gemini(prompt: str) -> str:
@@ -31,11 +37,16 @@ def ask_gemini(prompt: str) -> str:
     gemini_error = None
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
-        return response.text
+        if client is None:
+            gemini_failed = True
+            gemini_error = RuntimeError("GEMINI_API_KEY is not configured — falling back to Groq.")
+        else:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            return response.text
     except (httpx.TimeoutException, TimeoutError) as e:
         gemini_failed = True
         gemini_error = e

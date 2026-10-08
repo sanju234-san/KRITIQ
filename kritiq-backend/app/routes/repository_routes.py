@@ -8,7 +8,12 @@ import os
 
 from app.auth.dependencies import get_current_user
 from app.db.repositories_repo import repositories_repo
-from repo_integration.github_api import list_repo_files, HEADERS, GITHUB_API_BASE
+from repo_integration.github_api import (
+    list_repo_files,
+    get_github_headers,
+    get_user_github_token,
+    GITHUB_API_BASE,
+)
 from repo_integration.local_clone import LocalCloneManager
 
 # Sayeed domain
@@ -78,15 +83,22 @@ def parse_github_url(url: str) -> tuple[str, str]:
     raise ValueError("Invalid GitHub repository URL format")
 
 
-def fetch_all_repo_files_recursive(owner: str, name: str, path: str = "") -> list[str]:
+def fetch_all_repo_files_recursive(owner: str, name: str, path: str = "", current_user: dict | None = None) -> list[str]:
     """
     Recursively lists all real files inside a repository (including subdirectories like client/ and server/)
     using the GitHub Git Trees API with recursive=1. Returns ONLY file paths (type == 'blob'),
     never directory entries, so folders never appear as if they are selectable files.
+
+    Uses the authenticated caller's per-user GitHub OAuth token when available so that
+    private repository access is user-scoped, then falls back to the shared GITHUB_TOKEN env
+    for public browsing.  The caller can therefore never see another user's private repos
+    through this endpoint.
     """
+    headers = get_github_headers(current_user)
+    user_token = get_user_github_token(current_user)
     branch = "main"
     try:
-        r = requests.get(f"{GITHUB_API_BASE}/repos/{owner}/{name}", headers=HEADERS, timeout=5)
+        r = requests.get(f"{GITHUB_API_BASE}/repos/{owner}/{name}", headers=headers, timeout=5)
         if r.status_code == 200:
             branch = r.json().get("default_branch", "main")
     except Exception:
@@ -94,12 +106,11 @@ def fetch_all_repo_files_recursive(owner: str, name: str, path: str = "") -> lis
 
     tree_url = f"{GITHUB_API_BASE}/repos/{owner}/{name}/git/trees/{branch}?recursive=1"
     try:
-        resp = requests.get(tree_url, headers=HEADERS, timeout=10)
+        resp = requests.get(tree_url, headers=headers, timeout=10)
         if resp.status_code == 200:
             data = resp.json()
             tree = data.get("tree", [])
             truncated = bool(data.get("truncated", False))
-            # Filter type == 'blob' (files only, excluding directory entries)
             file_paths = [item["path"] for item in tree if item.get("type") == "blob"]
             if path:
                 prefix = path.rstrip("/") + "/"
@@ -109,17 +120,14 @@ def fetch_all_repo_files_recursive(owner: str, name: str, path: str = "") -> lis
     except Exception as e:
         print("Git Trees API recursive fetch failed:", e)
 
-    # Fallback: clone the repo and walk the filesystem (still files-only, no folders returned)
     repo_url = f"https://github.com/{owner}/{name}.git"
     try:
         import os as _os
-        token = HEADERS.get("Authorization", "").replace("Bearer ", "") or None
-        cloned_dir = LocalCloneManager.clone_from(repo_url, token=token)
+        cloned_dir = LocalCloneManager.clone_from(repo_url, token=user_token)
         root_dir = _os.path.join(cloned_dir, path) if path else cloned_dir
         collected: list[str] = []
         if _os.path.exists(root_dir) and _os.path.isdir(root_dir):
             for dirpath, _dirnames, filenames in _os.walk(root_dir):
-                # Skip .git metadata folder entirely
                 rel_dir = _os.path.relpath(dirpath, cloned_dir).replace("\\", "/")
                 if rel_dir == "." or rel_dir.startswith(".git/") or rel_dir == ".git":
                     if rel_dir == ".":
@@ -151,7 +159,7 @@ def fetch_all_repo_files_recursive(owner: str, name: str, path: str = "") -> lis
 )
 async def connect_repository(payload: RepositoryConnectRequest, current_user: dict = Depends(get_current_user)):
     repo_url = payload.repo_url
-    
+
     try:
         owner, repo = parse_github_url(repo_url)
     except ValueError as e:
@@ -159,8 +167,8 @@ async def connect_repository(payload: RepositoryConnectRequest, current_user: di
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-        
-    files = list_repo_files(owner, repo)
+
+    files = list_repo_files(owner, repo, current_user=current_user)
     if len(files) == 1 and files[0].startswith("Error:"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -216,7 +224,7 @@ async def list_repositories(current_user: dict = Depends(get_current_user)):
     summary="List all files inside a connected repository recursively"
 )
 async def get_repository_files(owner: str, name: str, path: str = "", current_user: dict = Depends(get_current_user)):
-    files = fetch_all_repo_files_recursive(owner, name, path=path)
+    files = fetch_all_repo_files_recursive(owner, name, path=path, current_user=current_user)
     if len(files) == 1 and files[0].startswith("Error:"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -231,16 +239,15 @@ async def get_repository_files(owner: str, name: str, path: str = "", current_us
     summary="Fetch raw file content from a connected repository"
 )
 async def get_repository_file_content(owner: str, name: str, path: str, current_user: dict = Depends(get_current_user)):
-    # Try fetching raw file from main and master branches
+    headers = get_github_headers(current_user)
     for branch in ["main", "master"]:
         raw_url = f"https://raw.githubusercontent.com/{owner}/{name}/{branch}/{path}"
-        resp = requests.get(raw_url, headers=HEADERS, timeout=10)
+        resp = requests.get(raw_url, headers=headers, timeout=10)
         if resp.status_code == 200:
             return {"owner": owner, "name": name, "path": path, "content": resp.text}
-            
-    # Fallback to GitHub Contents API
+
     contents_url = f"{GITHUB_API_BASE}/repos/{owner}/{name}/contents/{path}"
-    resp = requests.get(contents_url, headers=HEADERS, timeout=10)
+    resp = requests.get(contents_url, headers=headers, timeout=10)
     if resp.status_code == 200:
         data = resp.json()
         if isinstance(data, dict) and data.get("encoding") == "base64":

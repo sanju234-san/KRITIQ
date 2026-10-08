@@ -31,6 +31,21 @@ class ReviewIssue(BaseModel):
         example=12
     )
 
+class ReviewAIssue(BaseModel):
+    """Strict schema expected from the AI review provider."""
+    title: str = Field(..., min_length=1)
+    line: Optional[int] = None
+    severity: str = Field(default="medium")
+    explanation: str = Field(default="No detailed explanation available.")
+    suggested_fix: Optional[str] = None
+
+
+class ReviewAIResult(BaseModel):
+    """Structured AI response. This is validated before it reaches the API/database."""
+    summary: str = Field(default="No summary generated.")
+    issues: List[ReviewAIssue] = Field(default_factory=list)
+
+
 class ReviewRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     

@@ -34,8 +34,15 @@ async def submit_translation(payload: TranslationRequest, current_user: dict = D
             translated = await anyio.to_thread.run_sync(ask_groq, prompt)
         except Exception as groq_err:
             print("Groq fallback error:", groq_err)
+            err_lower = str(groq_err).lower()
+            is_config_err = (
+                "not configured" in err_lower
+                or "is not set" in err_lower
+                or "api_key" in err_lower
+            )
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR if is_config_err else status.HTTP_502_BAD_GATEWAY
             raise HTTPException(
-                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                status_code=status_code,
                 detail=f"Both primary AI (Gemini) and fallback AI (Groq) failed: {str(groq_err)}"
             )
     

@@ -1,4 +1,73 @@
 import React, { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
+const mdComponents = {
+  code({ inline, className, children, ...props }) {
+    const match = /language-(\w+)/.exec(className || '')
+    return !inline ? (
+      <pre className="bg-surface-container-lowest border border-outline-variant rounded p-sm my-xs overflow-x-auto text-[11px] leading-relaxed">
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </pre>
+    ) : (
+      <code className="bg-surface-container-lowest border border-outline-variant/60 rounded px-1 py-0.5 text-[11px] font-mono text-on-surface" {...props}>
+        {children}
+      </code>
+    )
+  },
+  p({ children }) {
+    return <p className="font-body-sm text-on-surface-variant leading-relaxed mb-sm">{children}</p>
+  },
+  ul({ children }) {
+    return <ul className="list-disc list-inside pl-sm mb-sm space-y-0.5 text-on-surface-variant text-[12px]">{children}</ul>
+  },
+  ol({ children }) {
+    return <ol className="list-decimal list-inside pl-sm mb-sm space-y-0.5 text-on-surface-variant text-[12px]">{children}</ol>
+  },
+  li({ children }) {
+    return <li className="text-[12px]">{children}</li>
+  },
+  strong({ children }) {
+    return <strong className="font-bold text-on-surface">{children}</strong>
+  },
+  a({ href, children }) {
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:brightness-110">{children}</a>
+  },
+  blockquote({ children }) {
+    return <blockquote className="border-l-2 border-outline-variant pl-sm my-sm text-on-surface-variant italic">{children}</blockquote>
+  },
+  h1({ children }) { return <h1 className="font-bold text-lg mb-sm text-on-surface">{children}</h1> },
+  h2({ children }) { return <h2 className="font-bold text-[15px] mb-sm text-on-surface">{children}</h2> },
+  h3({ children }) { return <h3 className="font-bold text-[13px] mb-sm text-on-surface">{children}</h3> },
+  table({ children }) {
+    return <table className="w-full border-collapse border border-outline-variant my-sm text-[11px]">{children}</table>
+  },
+  th({ children }) {
+    return <th className="border border-outline-variant px-sm py-xs bg-surface-container-high text-on-surface font-bold">{children}</th>
+  },
+  td({ children }) {
+    return <td className="border border-outline-variant px-sm py-xs text-on-surface-variant">{children}</td>
+  },
+}
+
+const mdComponentsFix = {
+  ...mdComponents,
+  p({ children }) {
+    return <p className="text-on-surface leading-relaxed mb-xs">{children}</p>
+  },
+}
+
+function cleanIssueTitle(value, index) {
+  let title = String(value || '').trim()
+  const boldMatch = title.match(/^\*\*(.+?)\*\*/s)
+  if (boldMatch) title = boldMatch[1].trim()
+  title = title.replace(/\*{1,3}/g, '').replace(/_{1,3}/g, '').replace(/`/g, '')
+  title = title.replace(/\s*\*{0,3}Line\s*:?\s*\d+.*$/i, '').trim()
+  title = title.replace(/\s+-\s*$/, '').trim()
+  return title || `Issue #${index + 1}`
+}
 
 export default function IssueList({ issues = [], onSelectLine }) {
   const [activeExplainId, setActiveExplainId] = useState(null)
@@ -39,7 +108,7 @@ export default function IssueList({ issues = [], onSelectLine }) {
   return (
     <div className="space-y-md">
       {issues.map((issue, index) => {
-        const issueTitle = issue.title || issue.message || `Issue #${index + 1}`
+        const issueTitle = cleanIssueTitle(issue.title || issue.message, index)
         const explanation = issue.explanation || 'No detailed explanation available.'
         const suggestedFix = issue.suggested_fix
         const line = issue.line || '—'
@@ -71,18 +140,24 @@ export default function IssueList({ issues = [], onSelectLine }) {
             <h4 className="font-headline-md text-body-md font-bold text-on-surface mb-xs">{issueTitle}</h4>
 
             {/* Explanation */}
-            <p className="font-body-sm text-on-surface-variant leading-relaxed mb-sm">{explanation}</p>
+            <div className="mb-sm ai-md">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                {explanation}
+              </ReactMarkdown>
+            </div>
 
             {/* Suggested Fix */}
             {suggestedFix && (
-              <div className="mt-sm p-sm bg-surface-container-lowest rounded border border-outline-variant font-mono text-code-sm">
+              <div className="mt-sm p-sm bg-surface-container-lowest rounded border border-outline-variant">
                 <p className="text-[10px] text-tertiary uppercase font-label-caps mb-xs flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px]">auto_fix_high</span>
                   Suggested Fix
                 </p>
-                <pre className="text-on-surface overflow-x-auto text-[11px] leading-relaxed whitespace-pre-wrap">
-                  {suggestedFix}
-                </pre>
+                <div className="ai-md-fix">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponentsFix}>
+                    {suggestedFix}
+                  </ReactMarkdown>
+                </div>
               </div>
             )}
 

@@ -30,7 +30,7 @@ CASES = [
     ("OPTIONS", "/auth/login", {}),
 
     # Control: real POST login request
-    ("POST", "/auth/login", {"Origin": LIVE_VERCEL_ORIGIN, "Content-Type": "application/json"}, {"email": "github_dev@kritiq.io", "password": "githubdevpwd123"}),
+    ("POST", "/auth/login", {"Origin": LIVE_VERCEL_ORIGIN, "Content-Type": "application/json"}, {"email": __import__("os").environ.get("KRITIQ_CHECK_EMAIL", "check-user@example.com"), "password": __import__("os").environ.get("KRITIQ_CHECK_PASSWORD", "ChangeMe-12345678")}),
 ]
 
 s = requests.Session()
