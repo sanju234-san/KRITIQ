@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import 'material-symbols/outlined.css'
 import './styles/tailwind.css'
 
 // Dev domain - Entrypoint
