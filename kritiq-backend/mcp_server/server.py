@@ -50,6 +50,35 @@ async def list_tools() -> list[Tool]:
                 "required": ["owner", "repo"]
             }
         ),
+        Tool(
+            name="review_code",
+            description="Review source code for bugs, security vulnerabilities, and code smells using Kritiq's Gemini + RAG + MCP pipeline.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "code": {"type": "string", "description": "Source code to review."},
+                    "language": {"type": "string", "description": "Programming language (e.g. python, javascript, java).", "default": "python"},
+                    "file_path": {"type": "string", "description": "Optional file path for sibling context."},
+                    "repo_owner": {"type": "string", "description": "Optional GitHub repo owner."},
+                    "repo_name": {"type": "string", "description": "Optional GitHub repo name."}
+                },
+                "required": ["code"]
+            }
+        ),
+        Tool(
+            name="translate_code",
+            description="Translate source code from one programming language to another using Kritiq's Gemini + RAG pipeline.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "code": {"type": "string", "description": "Source code to translate."},
+                    "source_language": {"type": "string", "description": "Source language (e.g. python).", "default": "python"},
+                    "target_language": {"type": "string", "description": "Target language (e.g. java, go, typescript)."},
+                    "file_path": {"type": "string", "description": "Optional file path for context."}
+                },
+                "required": ["code", "target_language"]
+            }
+        ),
     ]
 
 
@@ -67,6 +96,31 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         path = arguments.get("path", "")
         files = list_github_repo_files(owner, repo, path)
         return [TextContent(type="text", text="\n".join(files))]
+
+    if name == "review_code":
+        import anyio
+        from ai_agent.review_service import review_code
+        result = await anyio.to_thread.run_sync(
+            review_code,
+            arguments["code"],
+            arguments.get("language", "python"),
+            arguments.get("file_path"),
+            arguments.get("repo_owner"),
+            arguments.get("repo_name"),
+        )
+        return [TextContent(type="text", text=str(result))]
+
+    if name == "translate_code":
+        import anyio
+        from ai_agent.translation_service import translate_code
+        result = await anyio.to_thread.run_sync(
+            translate_code,
+            arguments["code"],
+            arguments.get("source_language", "python"),
+            arguments["target_language"],
+            arguments.get("file_path"),
+        )
+        return [TextContent(type="text", text=str(result))]
 
     raise ValueError(f"Unknown tool: {name}")
 
