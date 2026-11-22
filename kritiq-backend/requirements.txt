@@ -5,7 +5,7 @@ pydantic-settings
 pymongo
 pyjwt
 google-genai
-mcp
+mcp>=1.25,<2.0
 gitpython
 httpx
 requests
