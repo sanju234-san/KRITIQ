@@ -143,6 +143,10 @@ def create_mcp_sse_app():
 
     sse = SseServerTransport("/messages/")
 
+    class _NoOpResponse(Response):
+        async def __call__(self, scope, receive, send):
+            return
+
     async def handle_sse(request):
         async with sse.connect_sse(
             request.scope, request.receive, request._send
@@ -152,7 +156,7 @@ def create_mcp_sse_app():
                 write_stream,
                 app.create_initialization_options(),
             )
-        return Response()
+        return _NoOpResponse()
 
     return Starlette(
         routes=[
