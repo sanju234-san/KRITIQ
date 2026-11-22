@@ -6,6 +6,7 @@ ai_agent/explanation_service.py
 ai_agent/gemini_client.py
 ai_agent/groq_client.py
 ai_agent/multi_agent_review.py
+ai_agent/review_parser.py
 ai_agent/review_service.py
 ai_agent/translation_service.py
 ai_agent/walkthrough_writer.py
@@ -20,6 +21,7 @@ cli/main.py
 cli/utils.py
 cli/commands/__init__.py
 cli/commands/chat.py
+cli/commands/connect.py
 cli/commands/diff.py
 cli/commands/explain.py
 cli/commands/init.py
@@ -33,11 +35,13 @@ kritiq_cli.egg-info/entry_points.txt
 kritiq_cli.egg-info/requires.txt
 kritiq_cli.egg-info/top_level.txt
 tests/test_auth.py
+tests/test_auth_routes_oauth.py
 tests/test_gemini_client.py
 tests/test_jwt.py
 tests/test_mcp_server.py
 tests/test_pagination.py
 tests/test_rag_pipeline.py
 tests/test_repos.py
+tests/test_review_parser.py
 tests/test_review_routes.py
 tests/test_validators.py

@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: kritiq-cli
-Version: 2.4.12
+Version: 2.4.13
 Summary: KRITIQ AI-powered code review and translation CLI
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown

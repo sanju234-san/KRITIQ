@@ -2,7 +2,7 @@ import os
 import subprocess
 import requests
 import typer
-from cli.auth import retrieve_token
+from cli.auth import retrieve_token, get_api_url
 from cli.utils import (
     load_kritiq_config,
     load_kritiq_ignore,
@@ -47,11 +47,12 @@ def diff(
     if len(diff_text) > 15000:
         diff_text = diff_text[:15000] + "\n\n# ... [Diff patch truncated for AI review token limit] ..."
 
+    api_url = get_api_url()
     typer.echo("Analyzing diff patch with AI Engine...\n")
 
     try:
         resp = requests.post(
-            "http://localhost:8000/reviews/",
+            f"{api_url}/reviews/",
             json={
                 "code": diff_text,
                 "language": "gitpatch",
@@ -76,7 +77,7 @@ def diff(
     except (typer.Exit, SystemExit):
         raise
     except requests.exceptions.ConnectionError:
-        typer.secho(f"{safe_cross()} Error: Cannot connect to Kritiq backend server on http://localhost:8000.", fg=typer.colors.RED, err=True)
+        typer.secho(f"{safe_cross()} Error: Cannot connect to Kritiq backend server on {api_url}.", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
     except Exception as e:
         typer.secho(f"{safe_cross()} Error analyzing diff: {sanitize_error(e)}", fg=typer.colors.RED, err=True)

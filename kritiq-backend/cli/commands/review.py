@@ -1,7 +1,7 @@
 import os
 import requests
 import typer
-from cli.auth import retrieve_token
+from cli.auth import retrieve_token, get_api_url, get_connected_repo
 from cli.utils import (
     detect_language,
     load_kritiq_config,
@@ -25,46 +25,79 @@ def review(
         typer.secho(f"{safe_cross()} Not authenticated. Run 'kritiq login' first.", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
-    if not os.path.exists(path):
-        typer.secho(f"{safe_cross()} Error: File '{path}' does not exist.", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
+    api_url = get_api_url()
+    repo_info = get_connected_repo()
 
-    if os.path.isdir(path):
-        typer.secho(f"{safe_cross()} Error: '{path}' is a directory. Please provide a file path.", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
+    if os.path.exists(path):
+        if os.path.isdir(path):
+            typer.secho(f"{safe_cross()} Error: '{path}' is a directory. Please provide a file path.", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
 
-    # Check .kritiqignore
-    ignore_patterns = load_kritiq_ignore()
-    if is_ignored(path, ignore_patterns):
-        typer.secho(f"[SKIP] Skipped: '{path}' matches .kritiqignore", fg=typer.colors.YELLOW)
-        return
+        # Check .kritiqignore
+        ignore_patterns = load_kritiq_ignore()
+        if is_ignored(path, ignore_patterns):
+            typer.secho(f"[SKIP] Skipped: '{path}' matches .kritiqignore", fg=typer.colors.YELLOW)
+            return
 
-    # Check .kritiq.json config rules and file size limit
-    config = load_kritiq_config()
-    max_size_kb = config.get("max_file_size_kb", 500)
-    file_size_kb = os.path.getsize(path) / 1024.0
-    if file_size_kb > max_size_kb:
-        typer.secho(f"{safe_cross()} File '{path}' exceeds max size limit ({file_size_kb:.1f}KB > {max_size_kb}KB). Skipping.", fg=typer.colors.YELLOW)
-        return
+        # Check .kritiq.json config rules and file size limit
+        config = load_kritiq_config()
+        max_size_kb = config.get("max_file_size_kb", 500)
+        file_size_kb = os.path.getsize(path) / 1024.0
+        if file_size_kb > max_size_kb:
+            typer.secho(f"{safe_cross()} File '{path}' exceeds max size limit ({file_size_kb:.1f}KB > {max_size_kb}KB). Skipping.", fg=typer.colors.YELLOW)
+            return
 
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            code_content = f.read()
-    except Exception as e:
-        typer.secho(f"{safe_cross()} Error reading file: {sanitize_error(e)}", fg=typer.colors.RED, err=True)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                code_content = f.read()
+        except Exception as e:
+            typer.secho(f"{safe_cross()} Error reading file: {sanitize_error(e)}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+    elif repo_info:
+        owner = repo_info["repo_owner"]
+        name = repo_info["repo_name"]
+        typer.echo(f"Fetching '{path}' from connected repo {owner}/{name}...")
+        try:
+            file_resp = requests.get(
+                f"{api_url}/repositories/{owner}/{name}/file-content",
+                params={"path": path},
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=30,
+            )
+            if file_resp.status_code != 200:
+                typer.secho(f"{safe_cross()} Could not fetch '{path}' from {owner}/{name}.", fg=typer.colors.RED, err=True)
+                raise typer.Exit(code=1)
+            code_content = file_resp.json().get("content", "")
+        except (typer.Exit, SystemExit):
+            raise
+        except Exception as e:
+            typer.secho(f"{safe_cross()} Error fetching repo file: {sanitize_error(e)}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+    else:
+        typer.secho(
+            f"{safe_cross()} Error: File '{path}' does not exist locally and no repository is connected. Run 'kritiq connect <github_url>' first.",
+            fg=typer.colors.RED,
+            err=True,
+        )
         raise typer.Exit(code=1)
 
     language = detect_language(path)
     typer.echo(f"Reviewing {path} (detected language: {language})...\n")
 
+    payload = {
+        "code": code_content,
+        "language": language,
+        "filename": os.path.basename(path),
+    }
+    if repo_info:
+        payload["file_path"] = path
+        payload["repo_owner"] = repo_info["repo_owner"]
+        payload["repo_name"] = repo_info["repo_name"]
+
     try:
         resp = requests.post(
-            "http://localhost:8000/reviews/",
-            json={
-                "code": code_content,
-                "language": language,
-                "filename": os.path.basename(path),
-            },
+            f"{api_url}/reviews/",
+            json=payload,
             headers={"Authorization": f"Bearer {token}"},
             timeout=60
         )
@@ -95,7 +128,7 @@ def review(
     except (typer.Exit, SystemExit):
         raise
     except requests.exceptions.ConnectionError:
-        typer.secho(f"{safe_cross()} Error: Cannot connect to Kritiq backend server on http://localhost:8000.", fg=typer.colors.RED, err=True)
+        typer.secho(f"{safe_cross()} Error: Cannot connect to Kritiq backend server on {api_url}.", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
     except Exception as e:
         typer.secho(f"{safe_cross()} Error during code review: {sanitize_error(e)}", fg=typer.colors.RED, err=True)

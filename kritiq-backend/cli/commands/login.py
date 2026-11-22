@@ -1,6 +1,6 @@
 import typer
 import requests
-from cli.auth import store_token
+from cli.auth import store_token, get_api_url
 from cli.utils import sanitize_error, safe_check, safe_cross
 
 def login(
@@ -15,10 +15,11 @@ def login(
     if not password:
         password = typer.prompt("Enter Password (min 8 chars)", hide_input=True)
 
+    api_url = get_api_url()
     typer.echo("Logging into Kritiq Cloud...")
 
     try:
-        resp = requests.post("http://localhost:8000/auth/login", json={"email": email, "password": password}, timeout=10)
+        resp = requests.post(f"{api_url}/auth/login", json={"email": email, "password": password}, timeout=60)
         if resp.status_code == 200:
             data = resp.json()
             token = data.get("access_token", "")
@@ -32,7 +33,7 @@ def login(
             typer.secho(f"{safe_cross()} Login failed: {detail}", fg=typer.colors.RED, err=True)
             raise typer.Exit(code=1)
     except requests.exceptions.ConnectionError:
-        typer.secho(f"{safe_cross()} Error: Cannot connect to Kritiq backend server on http://localhost:8000.", fg=typer.colors.RED, err=True)
+        typer.secho(f"{safe_cross()} Error: Cannot connect to Kritiq backend server on {api_url}.", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
     except Exception as e:
         typer.secho(f"{safe_cross()} Error: {sanitize_error(e)}", fg=typer.colors.RED, err=True)

@@ -1,7 +1,7 @@
 import os
 import requests
 import typer
-from cli.auth import retrieve_token
+from cli.auth import retrieve_token, get_api_url
 from cli.utils import (
     detect_language,
     load_kritiq_config,
@@ -54,12 +54,13 @@ def explain(
         typer.secho(f"{safe_cross()} Error reading file: {sanitize_error(e)}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
+    api_url = get_api_url()
     language = detect_language(path)
     typer.echo(f"Explaining {path} (detected language: {language})...\n")
 
     try:
         resp = requests.post(
-            "http://localhost:8000/explanations/",
+            f"{api_url}/explanations/",
             json={
                 "code": code_content,
                 "language": language,
@@ -91,7 +92,7 @@ def explain(
     except (typer.Exit, SystemExit):
         raise
     except requests.exceptions.ConnectionError:
-        typer.secho(f"{safe_cross()} Error: Cannot connect to Kritiq backend server on http://localhost:8000.", fg=typer.colors.RED, err=True)
+        typer.secho(f"{safe_cross()} Error: Cannot connect to Kritiq backend server on {api_url}.", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
     except Exception as e:
         typer.secho(f"{safe_cross()} Error during code explanation: {sanitize_error(e)}", fg=typer.colors.RED, err=True)

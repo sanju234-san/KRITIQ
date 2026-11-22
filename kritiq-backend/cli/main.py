@@ -8,12 +8,14 @@ from cli.commands.chat import chat
 from cli.commands.login import login
 from cli.commands.init import init
 from cli.commands.diff import diff
+from cli.commands.connect import connect
 
 app = typer.Typer(help="Kritiq Command Line Interface")
 
 # Register commands per documentation
 app.command(name="login")(login)
 app.command(name="init")(init)
+app.command(name="connect")(connect)
 app.command(name="diff")(diff)
 app.command(name="review")(review)
 app.command(name="translate")(translate)

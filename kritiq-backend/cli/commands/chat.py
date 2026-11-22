@@ -1,6 +1,6 @@
 import requests
 import typer
-from cli.auth import retrieve_token
+from cli.auth import retrieve_token, get_api_url
 from cli.utils import sanitize_error, safe_cross
 
 def chat():
@@ -18,6 +18,7 @@ def chat():
     typer.secho(" Type 'exit' or 'quit' to end the session.          ", fg=typer.colors.YELLOW)
     typer.secho("===================================================\n", fg=typer.colors.CYAN)
 
+    api_url = get_api_url()
     conversation_history = []
 
     while True:
@@ -33,7 +34,7 @@ def chat():
             typer.echo("Kritiq is thinking...")
 
             resp = requests.post(
-                "http://localhost:8000/chat/",
+                f"{api_url}/chat/",
                 json={
                     "user_message": user_input,
                     "history": conversation_history,
