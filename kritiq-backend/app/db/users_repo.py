@@ -28,6 +28,18 @@ class UsersRepository:
             self.collection.update_one({"_id": user_id}, {"$set": updates})
         return self.collection.find_one({"_id": user_id})
 
+    async def set_api_key_hash(self, user_id, api_key_hash: str) -> None:
+        self.collection.update_one(
+            {"_id": user_id},
+            {"$set": {
+                "api_key_hash": api_key_hash,
+                "api_key_created_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        )
+
+    async def get_by_api_key_hash(self, api_key_hash: str) -> dict | None:
+        return self.collection.find_one({"api_key_hash": api_key_hash})
+
     async def upsert_github_user(self, *, github_id: str, email: str, name: str,
                                   github_username: str, github_access_token: str,
                                   avatar_url: str | None = None) -> dict:

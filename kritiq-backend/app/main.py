@@ -1,7 +1,10 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+import hashlib
 import os
+from app.db.users_repo import users_repo
+from mcp_server.server import create_mcp_sse_app
 from app.routes import (
     auth_routes,
     github_oauth_routes,
@@ -129,6 +132,30 @@ app.include_router(translation_routes.router, prefix="/translations", tags=["Tra
 app.include_router(explanation_routes.router, prefix="/explanations", tags=["Explanations"])
 app.include_router(history_routes.router, prefix="/history", tags=["History"])
 app.include_router(chat_routes.router, prefix="/chat", tags=["Chat"])
+
+
+@app.middleware("http")
+async def verify_mcp_api_key(request: Request, call_next):
+    if request.url.path.startswith("/mcp") and request.method.upper() != "OPTIONS":
+        auth_header = request.headers.get("authorization", "")
+        raw_key = ""
+        if auth_header.lower().startswith("bearer "):
+            raw_key = auth_header[7:].strip()
+        elif request.headers.get("x-api-key"):
+            raw_key = request.headers.get("x-api-key", "").strip()
+
+        if not raw_key:
+            return JSONResponse(status_code=401, content={"detail": "Missing MCP API key"})
+
+        key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+        user = await users_repo.get_by_api_key_hash(key_hash)
+        if not user:
+            return JSONResponse(status_code=401, content={"detail": "Invalid MCP API key"})
+
+    return await call_next(request)
+
+
+app.mount("/mcp", create_mcp_sse_app())
 
 @app.get("/", summary="Kritiq API health check root")
 async def root():

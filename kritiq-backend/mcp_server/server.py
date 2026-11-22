@@ -79,6 +79,34 @@ async def main():
             app.create_initialization_options()
         )
 
+
+def create_mcp_sse_app():
+    """Creates a Starlette ASGI app exposing this MCP server over SSE (/sse & /messages/)."""
+    from mcp.server.sse import SseServerTransport
+    from starlette.applications import Starlette
+    from starlette.routing import Mount, Route
+    from starlette.responses import Response
+
+    sse = SseServerTransport("/messages/")
+
+    async def handle_sse(request):
+        async with sse.connect_sse(
+            request.scope, request.receive, request._send
+        ) as (read_stream, write_stream):
+            await app.run(
+                read_stream,
+                write_stream,
+                app.create_initialization_options(),
+            )
+        return Response()
+
+    return Starlette(
+        routes=[
+            Route("/sse", endpoint=handle_sse),
+            Mount("/messages", app=sse.handle_post_message),
+        ]
+    )
+
 if __name__ == "__main__":
     print("Starting MCP server...", file=sys.stderr)
     asyncio.run(main())

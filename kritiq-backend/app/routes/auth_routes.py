@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.models.user_models import UserRegister, UserLogin, TokenResponse, UserProfileResponse
 from app.db.users_repo import users_repo
@@ -94,3 +96,16 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
 )
 async def logout():
     return {"detail": "Logged out."}
+
+
+@router.post(
+    "/api-key",
+    status_code=status.HTTP_200_OK,
+    summary="Generate an MCP API key",
+    description="Generates a personal API key (krq_live_...) for connecting external MCP clients (Claude, Antigravity, Cursor) to /mcp.",
+)
+async def generate_api_key(current_user: dict = Depends(get_current_user)):
+    raw_key = f"krq_live_{secrets.token_urlsafe(32)}"
+    key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+    await users_repo.set_api_key_hash(current_user.get("_id"), key_hash)
+    return {"api_key": raw_key, "token_type": "bearer"}
